@@ -1,0 +1,29 @@
+500 us/div   timebasevalue = 1
+200 us/div   timebasevalue = 1
+100 us/div   timebasevalue = 1
+50 us/div   timebasevalue = 1
+20 us/div   timebasevalue = 1
+10 us/div   timebasevalue = 1
+5 us/div   timebasevalue = 1
+2 us/div   timebasevalue = 1
+
+500 us/div   timebasevalue = 6
+200 us/div   timebasevalue = 4
+100 us/div   timebasevalue = 3
+50 us/div   timebasevalue = 1
+20 us/div   timebasevalue = 1
+10 us/div   timebasevalue = 1
+5 us/div   timebasevalue = 1
+2 us/div   timebasevalue = 1
+1 us/div   timebasevalue = 1
+
+
+500 ms/div   timebasevalue = 500
+200 ms/div   timebasevalue = 300
+100 ms/div   timebasevalue = 200
+50 ms/div   timebasevalue = 120
+20 ms/div   timebasevalue = 70
+10 ms/div   timebasevalue = 56
+5 ms/div   timebasevalue = 42
+2 ms/div   timebasevalue = 28
+1 ms/div   timebasevalue = 14
