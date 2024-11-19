@@ -41,7 +41,7 @@ bool FileHandle::serializeToFile(const QString &filename, const QVector<QPointF>
     }
 
     QDataStream out(&file);
-    out.setVersion(QDataStream::Qt_6_7); // 设置版本以确保兼容性
+    out.setVersion(QDataStream::Qt_6_6); // 设置版本以确保兼容性
 
     // 写入数据点的数量
     int size = data.size();
@@ -81,7 +81,7 @@ QVector<QPointF> FileHandle::deserializeFromFile(const QString &filename)
     }
 
     QDataStream in(&file);
-    in.setVersion(QDataStream::Qt_6_7); // 设置版本以确保兼容性
+    in.setVersion(QDataStream::Qt_6_6); // 设置版本以确保兼容性
 
     int size;
     in >> size; // 读取数据点的数量

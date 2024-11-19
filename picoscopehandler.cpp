@@ -10,7 +10,6 @@ PicoScopeHandler::PicoScopeHandler(QObject *parent):
     connect(timer, &QTimer::timeout, this, &PicoScopeHandler::onTimerUpdate);
     //链接模拟计时器
     connect(simulationTimer ,&QTimer::timeout ,this ,&PicoScopeHandler::onSimulationTimerUpdate);
-
     acquisitionInProgress = false;
 }
 //初始化设备
@@ -40,16 +39,22 @@ void PicoScopeHandler::setChannel(){
 //设置时基础和数据缓存
 void PicoScopeHandler::configureTimebase(){
     if(picoParam != nullptr){
-        status = ps2000aGetTimebase(handle ,picoParam->timeBaseObj.timebasevalue ,0 ,&timeIntervalNanoseconds, 0,&maxSamples ,0);
+        //status = ps2000aGetTimebase(handle ,picoParam->timeBaseObj.timebasevalue ,0 ,&timeIntervalNanoseconds, 0,&maxSamples ,0);
+        int16_t oversample = 1;
+        status = ps2000aGetTimebase2(handle,
+                                     picoParam->timeBaseObj.timebasevalue,
+                                     picoParam->timeBaseObj.sampleCount,
+                                     &timeIntervalNanoseconds,
+                                     oversample,
+                                     &maxSamples,
+                                     0);
         if(status != PICO_OK){
             QMessageBox::information(nullptr ,"Error" ,"时基获取错误，错误代码：" + QString::number(status));
             return;
         }
 
-
-
-        //设置采样率
-
+        //计算采样率，单位Hz
+        picoParam->samplingRate = 1e9 / timeIntervalNanoseconds;
 
         //设置采样数
         bufferA = std::make_unique<int16_t[]>(picoParam->timeBaseObj.sampleCount);
@@ -155,6 +160,26 @@ void PicoScopeHandler::simulationProcessSamples(){
             displayData.append(QPointF(time, voltage)); // 将时间和电压数据添加到显示数据中
         }
 
+        if(picoParam->timeBaseObj.unit == "ms")
+        {
+            timeInterval = timeInterval / 1000;
+        }
+        if(picoParam->timeBaseObj.unit == "us")
+        {
+            timeInterval = timeInterval / 1000000;
+        }
+        if(picoParam->timeBaseObj.unit == "ns")
+        {
+            timeInterval = timeInterval / 1000000000;
+        }
+        if(picoParam->timeBaseObj.unit == "ps")
+        {
+            timeInterval = timeInterval / 1000000000000;
+        }
+
+        //单位HZ
+        picoParam->samplingRate = displayData.size() / 1;
+
         //加入缓存
         cacheData.enqueue(displayData);
         if(cacheData.size() > picoParam->maxCacheCount){
@@ -177,108 +202,60 @@ void PicoScopeHandler::simulationProcessSamples(){
 //运行采集线程
 void PicoScopeHandler::processSamples(PICO_STATUS& status){
 
-    if(picoParam != nullptr){
+    if (picoParam != nullptr) {
         uint32_t noOfSamples = picoParam->timeBaseObj.sampleCount;
 
         status = ps2000aGetValues(handle, 0, &noOfSamples, 1, PS2000A_RATIO_MODE_NONE, 0, NULL);
         if (status != PICO_OK) {
             qDebug() << "Failed to get values. Error code: " << status;
-            QMessageBox::information(nullptr, "Error", "Failed to get values. Error code:"+ QString::number(status));
+            QMessageBox::information(nullptr, "Error", "Failed to get values. Error code:" + QString::number(status));
             acquisitionInProgress = false; // 无论成功与否，都要设置为 false
             return;
         }
 
-        //清理数据对象
+        // 清理数据对象
         displayData.clear();
-        // 给定参数
-        //double timePerDiv = picoParam->timeBaseObj.scale; // 每格代表的时间（微秒）
-        int maxDivisions = picoParam->timeBaseObj.maxScale; // 最大刻度（格子数）
-        double sampleInterval = picoParam->timeBaseObj.interval; // 采样间隔（纳秒）
-        // 计算每个样本的时间间隔（单位：微秒）
-        double timeInterval = sampleInterval; //totalTime / noOfSamples;
 
-        // 计算总时间范围
-        //double totalTime =  maxDivisions; // 总时间为 1000 微秒
-        if(picoParam->timeBaseObj.intervalUnit == "ps" && picoParam->timeBaseObj.unit == "ns"){
-            timeInterval = timeInterval / 1000;
+        // 设置采样间隔并转换为秒
+        double sampleInterval = picoParam->timeBaseObj.interval;
+        if (picoParam->timeBaseObj.intervalUnit == "ps") {
+            sampleInterval *= 1e-12;
+        } else if (picoParam->timeBaseObj.intervalUnit == "ns") {
+            sampleInterval *= 1e-9;
+        } else if (picoParam->timeBaseObj.intervalUnit == "us") {
+            sampleInterval *= 1e-6;
+        } else if (picoParam->timeBaseObj.intervalUnit == "ms") {
+            sampleInterval *= 1e-3;
         }
-        if(picoParam->timeBaseObj.intervalUnit == "ps" && picoParam->timeBaseObj.unit == "us"){
-            //totalTime = totalTime / 1000;
-            timeInterval = timeInterval / 1000000;
-            if(picoParam->timeBaseObj.conversion){
-                timeInterval = timeInterval / 1000;
-            }
-        }
-        if(picoParam->timeBaseObj.intervalUnit == "ns" && picoParam->timeBaseObj.unit == "us"){
-            timeInterval = timeInterval / 1000;
-            if(picoParam->timeBaseObj.conversion){
-                timeInterval = timeInterval / 1000;
-            }
-        }
-        if(picoParam->timeBaseObj.intervalUnit == "ns" && picoParam->timeBaseObj.unit == "ms"){
-            timeInterval = timeInterval / 1000000;
-        }
-        if(picoParam->timeBaseObj.intervalUnit == "us" && picoParam->timeBaseObj.unit == "ms"){
-            timeInterval = timeInterval / 1000;
-            if(picoParam->timeBaseObj.conversion){
-                timeInterval = timeInterval / 1000;
-            }
-        }
-        if(picoParam->timeBaseObj.intervalUnit == "ms" && picoParam->timeBaseObj.unit == "s"){
-            timeInterval = timeInterval / 1000000;
-            if(picoParam->timeBaseObj.conversion){
-                timeInterval = timeInterval / 1000;
-            }
-        }
-
-        if(picoParam->timeBaseObj.conversion == 1){
-            maxDivisions = maxDivisions / 1000 ;
+        if(picoParam->timeBaseObj.conversion){
+            sampleInterval *= 1e-3;
         }
 
         float startTime = 0;
 
-        //判断电压是否需要转换单位
-        bool voltsConversion = false;
-        switch(picoParam->VoltageRange){
-            case PS2000A_10MV:
-            case PS2000A_20MV:
-            case PS2000A_50MV:
-            case PS2000A_100MV:
-            case PS2000A_200MV:
-            case PS2000A_500MV:
-                voltsConversion = true;
-                break;
-            default:
-                voltsConversion = false;
-                break;
+        // 获取电压范围
+        PS2000A_RANGE range = picoParam->VoltageRange;
 
-        }
-
-        // 填充 buffer 数组（示例数据）
+        // 填充 displayData 数据，统一将电压转换为 mV
         for (int32_t i = 0; i < noOfSamples; ++i) {
-            float time = startTime + i * timeInterval;
-            double voltage = adcToVolts(bufferA[i]);
-            if(voltsConversion){
-                voltage = voltage * 1000;
-            }
-            //double voltage = bufferA[i];
-            displayData.append(QPointF(time, voltage)); // 将时间和电压数据添加到显示数据中
+            float time = startTime + i * sampleInterval;
+            double voltage = adcToVolts(bufferA[i] ,range) * 1000;  // 将所有电压转换为 mV
+            displayData.append(QPointF(time, voltage));  // 将时间和电压数据添加到显示数据中
         }
 
-        //加入缓存
+        // 更新缓存
         cacheData.enqueue(displayData);
-        if(cacheData.size() > picoParam->maxCacheCount){
+        if (cacheData.size() > picoParam->maxCacheCount) {
             cacheData.dequeue();
         }
 
-        //发送信号
+        // 发送信号
         emit cacheDataUpdated();
         emit dataUpdated();
 
-        // 标记采集不再进行
         acquisitionInProgress = false;
-    }else{
-        QMessageBox::information(nullptr ,"Error" ,"参数类型未空，请检查参数对象");
+    } else {
+        QMessageBox::information(nullptr, "Error", "参数类型为空，请检查参数对象");
         acquisitionInProgress = false;
     }
 }
@@ -368,15 +345,37 @@ void PicoScopeHandler::addCacheData(QVector<QPointF> datas){
     cacheData.enqueue(datas);
 }
 //adc值换算成电压
-double PicoScopeHandler::adcToVolts(int16_t adcValue) const{
-    //picoParam->voltageRangeValue
-    return adcValue * (picoParam->voltageRangeValue / 32767.0);
-    //return adcValue * (2.0f / 32767.0);
+double PicoScopeHandler::adcToVolts(int16_t adcValue,PS2000A_RANGE range) const{
+    double maxVoltage = 0;
+    switch (range) {
+        case PS2000A_10MV:   maxVoltage = 0.01; break;    // ±10 mV
+        case PS2000A_20MV:   maxVoltage = 0.02; break;    // ±20 mV
+        case PS2000A_50MV:   maxVoltage = 0.05; break;    // ±50 mV
+        case PS2000A_100MV:  maxVoltage = 0.1; break;     // ±100 mV
+        case PS2000A_200MV:  maxVoltage = 0.2; break;     // ±200 mV
+        case PS2000A_500MV:  maxVoltage = 0.5; break;     // ±500 mV
+        case PS2000A_1V:     maxVoltage = 1.0; break;     // ±1 V
+        case PS2000A_2V:     maxVoltage = 2.0; break;     // ±2 V
+        case PS2000A_5V:     maxVoltage = 5.0; break;     // ±5 V
+        case PS2000A_10V:    maxVoltage = 10.0; break;    // ±10 V
+        case PS2000A_20V:    maxVoltage = 20.0; break;    // ±20 V
+        case PS2000A_50V:    maxVoltage = 50.0; break;    // ±50 V
+        default:             maxVoltage = 1.0; break;     // 默认1 V
+    }
+
+    int16_t adcMaxValue = 32767; // 16位ADC的最大值
+    return (static_cast<double>(adcValue) / adcMaxValue) * maxVoltage;
 }
+//清除缓存
+void PicoScopeHandler::removeCacheData(){
+    cacheData.clear();
+}
+
 //析构函数
 PicoScopeHandler::~PicoScopeHandler() {
     if (handle != 0) {
         ps2000aStop(handle);
         ps2000aCloseUnit(handle);
+        removeCacheData();
     }
 }

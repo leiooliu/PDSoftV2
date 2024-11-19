@@ -34,7 +34,6 @@ private slots:
     void on_pushButton_3_clicked();
     void on_pushButton_4_clicked();
     void on_pushButton_5_clicked();
-    void on_cb_HZUnit_currentIndexChanged(int index);
     void on_pushButton_6_clicked();
     void on_pushButton_7_clicked();
     void on_pushButton_8_clicked();
@@ -48,6 +47,10 @@ private slots:
     void on_pushButton_10_clicked();
 
     void on_pushButton_11_clicked();
+
+    void on_pushButton_13_clicked();
+
+    void on_cb_Couping_currentIndexChanged(int index);
 
 private:
     Ui::MainWindow *ui;

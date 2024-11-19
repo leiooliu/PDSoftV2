@@ -5,6 +5,7 @@
 #include <csvloader.h>
 #include <QStandardItemModel>
 #include <QStandardItem>
+#include <QtConcurrent/QtConcurrent>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -23,11 +24,6 @@ MainWindow::MainWindow(QWidget *parent)
     }
     //默认频域图表单位
     frequencyUnit = 0;
-    //频率单位
-    ui->cb_HZUnit->addItem("Hz");
-    ui->cb_HZUnit->addItem("KHz");
-    ui->cb_HZUnit->addItem("MHz");
-    ui->cb_HZUnit->currentIndexChanged(0);
     //采集卡参数
     picoParam = new PicoParam(
         timeBaseList.at(0) ,
@@ -36,7 +32,8 @@ MainWindow::MainWindow(QWidget *parent)
         PS2000A_DC ,
         ui->sb_timebase->value(),
         1.0,
-        64
+        64,
+        0.0
     );
     //绑定参数
     binderVoltage =  EnumMap::getVoltageBuilder(ui->cb_Voltage);
@@ -78,12 +75,13 @@ MainWindow::MainWindow(QWidget *parent)
     binderChannel->setCurrentEnumValue(PS2000A_CHANNEL_A);
 
     ui->chartView_2->setTitle("频域图");
-    ui->chartView_2->setXAxisTitle("Hz");
+    ui->chartView_2->setXAxisTitle("MHz");
     ui->chartView_2->setYAxisTitle("dBu");
     ui->chartView_2->setLineColor(Qt::blue);
     ui->chartView_2->setLineWidth(1);
-    ui->chartView_2->setXAxisRange(0,350);
-    ui->chartView_2->setYAxisRange(-200,200);
+    ui->chartView_2->setXAxisRange(0,5);
+    ui->chartView_2->setYAxisRange(-200,100);
+    ui->chartView_2->setYAxisScale(-100 ,100 ,10);
 
     tbRander = new tablerender(ui->tableView);
     headers.append("Frequency");
@@ -106,13 +104,36 @@ MainWindow::~MainWindow()
 }
 //渲染数据
 void MainWindow::updateGraph(const QVector<QPointF> bufferedData){
-    ui->chartView->setData(bufferedData);
-    fftData = singalConvert->performFFT(bufferedData ,frequencyUnit);
-    // qreal maxX = singalConvert->findMaxX(fftData);
-    // qreal maxY = singalConvert->findMaxY(fftData);
-    // ui->chartView_2->setXAxisScale(0,maxX,100.0);
-    // ui->chartView_2->setYAxisScale(-(maxY+10),maxY+10,100.0);
-    ui->chartView_2->setData(fftData);
+    ui->chartView->setData(bufferedData,picoParam->timeBaseObj.unit);
+    for(int i=0;i<10;++i){
+        qDebug()<<bufferedData[i].x();
+    }
+    qDebug()<<"-------------";
+
+    double samplingRate = singalConvert->calculateFrequency(bufferedData ,picoParam->samplingRate);
+    ui->lbl_fvalues->setText(QString::number(samplingRate/1000));
+
+    double amplitudeValue = singalConvert->measurePeakValue(bufferedData);
+    ui->lbl_vvalues->setText(QString::number(amplitudeValue));
+
+    // FFT 数据的处理移到后台线程
+    QtConcurrent::run([=] {
+        int unittype = 2;
+        if(picoParam->timeBaseObj.frequencyUnit == "kHz"){
+            unittype = 1;
+        }else if(picoParam->timeBaseObj.frequencyUnit == "Hz"){
+            unittype = 0;
+        }else if(picoParam->timeBaseObj.frequencyUnit == "mHz"){
+            unittype = 2;
+        }
+
+        for(int i=0;i<10;++i){
+            qDebug()<<bufferedData[i].x();
+        }
+        qDebug()<<"-------------";
+        auto fftResult = singalConvert->performFFT(bufferedData ,unittype);
+        ui->chartView_2->setFData(fftResult);
+    });
 }
 
 //开始模拟数据
@@ -190,22 +211,25 @@ void MainWindow::on_cb_Timebase_currentIndexChanged(int index)
             ui->textEdit->append("选择时基：");
             ui->textEdit->append(timeBaseObj.scope);
             ui->textEdit->append("------------------------------");
+
+            ui->chartView_2->setXAxisTitle(picoParam->timeBaseObj.frequencyUnit);
+            ui->chartView_2->setXAxisRange(0 ,picoParam->timeBaseObj.frequencyScope);
         }
     }
 }
 //选择电压
 void MainWindow::on_cb_Voltage_currentIndexChanged(int index)
 {
-    if(ui->cb_Voltage->count() > 1){
-        double interval = 100;
+    if (ui->cb_Voltage->count() > 1) {
+        double interval = 100;       // 默认间隔，单位为 mV
+        double voltageRange = 500;    // 默认电压范围，单位为 mV
         QString AxisTitle = "Voltage (mV)";
         PS2000A_RANGE range = binderVoltage->getEnumValueAtIndex(index);
-        double voltageRange = 0;
 
         switch (range) {
         case PS2000A_10MV:
-            voltageRange = 10;
-            interval = 2.0;
+            voltageRange = 10;    // 10 mV
+            interval = 2.0;       // 2 mV 间隔
             AxisTitle = "Voltage (mV)";
             break;
         case PS2000A_20MV:
@@ -234,49 +258,49 @@ void MainWindow::on_cb_Voltage_currentIndexChanged(int index)
             AxisTitle = "Voltage (mV)";
             break;
         case PS2000A_1V:
-            voltageRange = 1;
-            interval = 0.2;
-            AxisTitle = "Voltage (V)";
+            voltageRange = 1000;  // 1 V 转换为 mV
+            interval = 200.0;     // 200 mV 间隔
+            AxisTitle = "Voltage (mV)";
             break;
         case PS2000A_2V:
-            voltageRange = 2;
-            interval = 0.4;
-            AxisTitle = "Voltage (V)";
+            voltageRange = 2000;  // 2 V 转换为 mV
+            interval = 400.0;     // 400 mV 间隔
+            AxisTitle = "Voltage (mV)";
             break;
         case PS2000A_5V:
-            voltageRange = 5;
-            interval = 1.0;
-            AxisTitle = "Voltage (V)";
+            voltageRange = 5000;  // 5 V 转换为 mV
+            interval = 1000.0;    // 1000 mV 间隔
+            AxisTitle = "Voltage (mV)";
             break;
         case PS2000A_10V:
-            voltageRange = 10;
-            interval = 2.0;
-            AxisTitle = "Voltage (V)";
+            voltageRange = 10000; // 10 V 转换为 mV
+            interval = 2000.0;    // 2000 mV 间隔
+            AxisTitle = "Voltage (mV)";
             break;
         case PS2000A_20V:
-            voltageRange = 20;
-            interval = 4.0;
-            AxisTitle = "Voltage (V)";
+            voltageRange = 20000; // 20 V 转换为 mV
+            interval = 4000.0;    // 4000 mV 间隔
+            AxisTitle = "Voltage (mV)";
             break;
         case PS2000A_50V:
-            voltageRange = 50;
-            interval = 10.0;
-            AxisTitle = "Voltage (V)";
+            voltageRange = 50000; // 50 V 转换为 mV
+            interval = 10000.0;   // 10000 mV 间隔
+            AxisTitle = "Voltage (mV)";
             break;
         default:
-            voltageRange = 500;// 默认500mV
+            voltageRange = 500;    // 默认 500 mV
             interval = 100.0;
             AxisTitle = "Voltage (mV)";
             break;
         }
 
         ui->chartView->setYAxisTitle(AxisTitle);
-        ui->chartView->setYAxisScale(-voltageRange ,voltageRange ,interval);
+        ui->chartView->setYAxisScale(-voltageRange, voltageRange, interval);
 
         picoParam->VoltageRange = range;
 
         ui->textEdit->append("选择幅值：");
-        ui->textEdit->append(QString::number(voltageRange));
+        ui->textEdit->append(QString::number(voltageRange) + " mV");
         ui->textEdit->append("------------------------------");
     }
 }
@@ -286,8 +310,8 @@ void MainWindow::on_pushButton_3_clicked()
 {
     picohandle->startSimulationSingle();
     ui->textEdit->append(QString::number(picohandle->getSamples().size()));
-    fftData = singalConvert->performFFT(bufferedData ,frequencyUnit);
-    ui->chartView_2->setData(fftData);
+    //fftData = singalConvert->performFFT(bufferedData ,frequencyUnit);
+    //ui->chartView_2->setData(fftData);
 }
 
 //导出CSV
@@ -313,16 +337,6 @@ void MainWindow::on_pushButton_5_clicked()
     bufferedData.clear();
     CSVLoader::loadDataFromCSV(fileName ,bufferedData);
     updateGraph(bufferedData);
-}
-
-//选择频域单位
-void MainWindow::on_cb_HZUnit_currentIndexChanged(int index)
-{
-    frequencyUnit = index;
-    if(bufferedData.size() > 0){
-        QVector<QPointF> fftData = singalConvert->performFFT(bufferedData ,frequencyUnit);
-        ui->chartView_2->setData(fftData);
-    }
 }
 
 //筛选频率单位
@@ -477,6 +491,27 @@ void MainWindow::on_pushButton_11_clicked()
                 break;
             }
         }
+    }
+}
+
+// 清除缓存
+void MainWindow::on_pushButton_13_clicked()
+{
+    picohandle->removeCacheData();
+    itemModel->clear();
+}
+
+//选择切换耦合方式
+void MainWindow::on_cb_Couping_currentIndexChanged(int index)
+{
+    if (ui->cb_Couping->count() > 1) {
+
+        enPS2000ACoupling couplint = binderCoupling->getEnumValueAtIndex(index);
+        picoParam->Coupling = couplint;
+
+        ui->textEdit->append("Couping：");
+        ui->textEdit->append(QString::number(couplint));
+        ui->textEdit->append("------------------------------");
     }
 }
 

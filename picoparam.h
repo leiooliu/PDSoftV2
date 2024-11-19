@@ -21,6 +21,8 @@ public :
     float voltageRangeValue;
     //最大缓存数
     int16_t maxCacheCount;
+    //采样率
+    double samplingRate;
 
 
     PicoParam(TimeBase timeBaseObj ,
@@ -29,14 +31,16 @@ public :
               PS2000A_COUPLING Coupling ,
               uint32_t timebaseValue ,
               float voltageRangeValue,
-              int16_t maxCacheCount):
+              int16_t maxCacheCount,
+              double _samplingRate):
         timeBaseObj(timeBaseObj) ,
         Channel(Channel) ,
         VoltageRange(VoltageRange) ,
         Coupling(Coupling) ,
         timebaseValue(timebaseValue) ,
         voltageRangeValue(voltageRangeValue),
-        maxCacheCount(maxCacheCount)
+        maxCacheCount(maxCacheCount),
+        samplingRate(_samplingRate)
     {
 
     }

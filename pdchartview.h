@@ -55,10 +55,10 @@ protected:
 
                     if (qAbs(point.x() - mousePos.x()) < 0.1 && qAbs(point.y() - mousePos.y()) < 0.1) {
 
-                        double thdValue = convert->calculateTHD(lineSeries->points() ,1);
+                        //double thdValue = convert->calculateTHD(lineSeries->points() ,1);
                         //double thdValue = convert->calculateTHD(lineSeries->points() ,point.x());
                         // 显示 Tooltip
-                        QString tooltip = QString("X: %1\nY: %2\nTHD: \%3").arg(point.x()).arg(point.y()).arg(thdValue);
+                        QString tooltip = QString("X: %1\nY: %2\nTHD: \%3").arg(point.x()).arg(point.y());//.arg(thdValue);
 
                         QToolTip::showText(event->globalPosition().toPoint(), tooltip, this);
                         return;  // 找到点后立即返回
@@ -98,7 +98,7 @@ protected:
             qreal maxX = axisX->max();
 
             // 计算滚动步长，步长越大滚动越快
-            qreal scrollStep = (maxX - minX) * 0.01;  // 10% 的范围滚动
+            qreal scrollStep = (maxX - minX) * 0.02;  // 10% 的范围滚动
 
             // 根据滚轮的滚动方向调整 X 轴的范围
             if (event->angleDelta().y() > 0) {

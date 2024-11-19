@@ -81,11 +81,39 @@ PDChart::~PDChart()
     delete axisY;
 }
 
-void PDChart::setData(const QList<QPointF> &points)
-{
+void PDChart::setFData(const QVector<QPointF> &points){
     series->clear();
     series->replace(points);
 }
+
+void PDChart::setData(const QList<QPointF> &points,QString unit)
+{
+    series->clear();
+
+    // 确定转换因子，将所有单位转换为秒
+    double timeScaleFactor = 1.0;
+    if (unit == "ps") {
+        timeScaleFactor = 1e12;
+    } else if (unit == "ns") {
+        timeScaleFactor = 1e9;
+    } else if (unit == "us") {
+        timeScaleFactor = 1e6;
+    } else if (unit == "ms") {
+        timeScaleFactor = 1e3;
+    } else if (unit == "s") {
+        timeScaleFactor = 1.0;
+    }
+
+    QVector<QPointF> convertedPoints;
+    for (const QPointF &point : points) {
+        double timeInSeconds = point.x() * timeScaleFactor;  // 将时间值转换为秒
+        convertedPoints.append(QPointF(timeInSeconds, point.y()));
+    }
+
+    series->replace(convertedPoints);
+}
+
+
 
 void PDChart::setTitle(const QString &title)
 {

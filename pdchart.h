@@ -8,12 +8,15 @@
 #include <QValueAxis>
 #include <QMouseEvent>
 #include <pdchartview.h>
+#include <QTime>
 class PDChart:public QWidget
 {
+    Q_OBJECT
 public:
     PDChart(QWidget *parent = nullptr);
     ~PDChart();
-    void setData(const QList<QPointF> &points);
+    void setData(const QVector<QPointF> &points ,QString unit);
+    void setFData(const QVector<QPointF> &points);
     void setTitle(const QString &title);
     void setXAxisTitle(const QString &title);
     void setYAxisTitle(const QString &title);
@@ -25,6 +28,7 @@ public:
     void setYAxisScale(qreal min, qreal max, qreal interval);
     void setXAxisScale(qreal min, qreal max, qreal interval);
     void clearData();
+    QChart *chart;
 signals:
     void sgl_recoverRange(PDChart *p);
 
@@ -36,7 +40,7 @@ protected:
 
 private:
     PDChartView *chartView;
-    QChart *chart;
+
     QLineSeries *series;
     QValueAxis *axisX;
     QValueAxis *axisY;

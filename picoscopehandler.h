@@ -35,6 +35,8 @@ public:
     QQueue<QVector<QPointF>> getCacheData() const;
     //加载缓存文件
     void addCacheData(QVector<QPointF> datas);
+    //清除缓存
+    void removeCacheData();
 
 signals:
     //数据更新信号
@@ -54,7 +56,7 @@ private:
     //采样数
     uint32_t numSamples;
     //采集间隔
-    int32_t timeIntervalNanoseconds;
+    float timeIntervalNanoseconds;
     int32_t maxSamples;
     //Timer计时器
     QTimer* timer;
@@ -74,7 +76,7 @@ private:
     //模拟采集进程
     void simulationProcessSamples();
     //adc转换为电压
-    double adcToVolts(int16_t adcValue) const;
+    double adcToVolts(int16_t adcValue ,PS2000A_RANGE range) const;
 };
 
 #endif // PICOSCOPEHANDLER_H

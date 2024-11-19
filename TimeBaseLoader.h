@@ -24,6 +24,8 @@ public:
     double interval;//采样间隔
     QString intervalUnit; //采样间隔单位
     uint32_t timebasevalue;
+    QString frequencyUnit;//频率单位
+    double frequencyScope;//频率范围
     // 构造函数
     TimeBase(const QString &scope,
              int sampleCount ,
@@ -33,7 +35,9 @@ public:
              int  _conversion ,
              double _interval ,
              QString &_intervalUnit,
-             uint32_t _timebasevalue)
+             uint32_t _timebasevalue,
+             QString &_frequencyUnit,
+             double _frequencyScope)
         : scope(scope),
         sampleCount(sampleCount),
         unit(_unit),
@@ -42,7 +46,9 @@ public:
         conversion(_conversion) ,
         interval(_interval) ,
         intervalUnit(_intervalUnit),
-        timebasevalue(_timebasevalue)
+        timebasevalue(_timebasevalue),
+        frequencyUnit(_frequencyUnit),
+        frequencyScope(_frequencyScope)
     {}
 };
 
@@ -151,9 +157,11 @@ public:
             double interval = obj["采样间隔"].toDouble();
             QString intervalUnit = obj["采样间隔单位"].toString();
             uint32_t timebasevalue = obj["时基值"].toInt();
+            QString frequencyUnit = obj["频域单位"].toString();
+            double frequencyScope = obj["频域范围"].toDouble();
             timeBaseList.append(TimeBase(
                 scope, sampleCount ,unit ,scale,
-                maxScale ,conversion ,interval ,intervalUnit,timebasevalue
+                maxScale ,conversion ,interval ,intervalUnit,timebasevalue,frequencyUnit,frequencyScope
             ));
         }
 
