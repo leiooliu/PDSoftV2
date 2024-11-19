@@ -9,7 +9,7 @@ class SingalConvert
 {
 public:
     SingalConvert();
-    QVector<QPointF> performFFT(QVector<QPointF> dataPoints,int unit);
+    QVector<QPointF> performFFT(QVector<QPointF> dataPoints,int unit,bool isConvert);
     qreal findMaxX(const QVector<QPointF>& dataPoints);
     qreal findMaxY(const QVector<QPointF>& dataPoints);
     double calculateTHD(const QList<QPointF>& frequencyData, double fundamentalFrequency);

@@ -65,12 +65,12 @@ MainWindow::MainWindow(QWidget *parent)
     ui->chartView->setXAxisTitle("Time (us)");
     ui->chartView->setYAxisTitle("Voltage (V)");
     ui->chartView->setLineColor(Qt::blue);
-    ui->chartView->setLineWidth(1);
+    ui->chartView->setLineWidth(0.5);
     ui->chartView->setXAxisRange(0,1);
     ui->chartView->setYAxisRange(-5,5);
 
     ui->cb_Timebase->setCurrentIndex(10);
-    binderVoltage->setCurrentEnumValue(PS2000A_1V);
+    binderVoltage->setCurrentEnumValue(PS2000A_10V);
     binderCoupling->setCurrentEnumValue(PS2000A_DC);
     binderChannel->setCurrentEnumValue(PS2000A_CHANNEL_A);
 
@@ -78,10 +78,13 @@ MainWindow::MainWindow(QWidget *parent)
     ui->chartView_2->setXAxisTitle("MHz");
     ui->chartView_2->setYAxisTitle("dBu");
     ui->chartView_2->setLineColor(Qt::blue);
-    ui->chartView_2->setLineWidth(1);
+    ui->chartView_2->setLineWidth(0.5);
     ui->chartView_2->setXAxisRange(0,5);
-    ui->chartView_2->setYAxisRange(-200,100);
+    // ui->chartView_2->setYAxisRange(-200,100);
     ui->chartView_2->setYAxisScale(-100 ,100 ,10);
+
+    ui->chartView_2->setXAxisTitle(picoParam->timeBaseObj.frequencyUnit);
+    ui->chartView_2->setXAxisRange(0 ,picoParam->timeBaseObj.frequencyScope);
 
     tbRander = new tablerender(ui->tableView);
     headers.append("Frequency");
@@ -131,7 +134,7 @@ void MainWindow::updateGraph(const QVector<QPointF> bufferedData){
             qDebug()<<bufferedData[i].x();
         }
         qDebug()<<"-------------";
-        auto fftResult = singalConvert->performFFT(bufferedData ,unittype);
+        auto fftResult = singalConvert->performFFT(bufferedData ,unittype,picoParam->timeBaseObj.conversion);
         ui->chartView_2->setFData(fftResult);
     });
 }

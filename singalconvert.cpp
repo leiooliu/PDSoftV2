@@ -99,7 +99,7 @@ QVector<QPointF> SingalConvert::convertToFrequencyDomain(const QVector<QPointF>&
     return frequencyDomain;
 }
 
-QVector<QPointF> SingalConvert::performFFT(QVector<QPointF> dataPoints ,int unit){
+QVector<QPointF> SingalConvert::performFFT(QVector<QPointF> dataPoints ,int unit,bool isConvert){
     int N = dataPoints.size();
     if (N < 2) {
         qWarning() << "Insufficient data points for FFT.";
@@ -107,6 +107,9 @@ QVector<QPointF> SingalConvert::performFFT(QVector<QPointF> dataPoints ,int unit
     }
 
     double T = dataPoints[1].x() - dataPoints[0].x();
+    if(isConvert){
+        T *= 1e3;
+    }
     if (T <= 0) {
         qWarning() << "Invalid sampling interval (T):" << T;
         return {};

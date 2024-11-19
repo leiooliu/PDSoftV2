@@ -58,8 +58,8 @@ protected:
                         //double thdValue = convert->calculateTHD(lineSeries->points() ,1);
                         //double thdValue = convert->calculateTHD(lineSeries->points() ,point.x());
                         // 显示 Tooltip
-                        QString tooltip = QString("X: %1\nY: %2\nTHD: \%3").arg(point.x()).arg(point.y());//.arg(thdValue);
-
+                        //QString tooltip = QString("X: %1\nY: %2\nTHD: \%3").arg(point.x()).arg(point.y());//.arg(thdValue);
+                        QString tooltip = QString("X: %1\nY: %2\n").arg(point.x()).arg(point.y());//.arg(thdValue);
                         QToolTip::showText(event->globalPosition().toPoint(), tooltip, this);
                         return;  // 找到点后立即返回
                     }

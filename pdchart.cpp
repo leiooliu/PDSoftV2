@@ -18,10 +18,14 @@ PDChart::PDChart(QWidget *parent):
     m_bMiddleButtonPressed(false),
     m_oPrePos(0,0)
 {
+
     //setMouseTracking(true);
     //setRubberBand(PDChart::NoRubberBand);
     chart = new QChart();
     series = new QLineSeries();
+    //使用OpenGL渲染
+    series->setUseOpenGL(true);
+
     axisX = new QValueAxis();
     axisY = new QValueAxis();
 
@@ -83,6 +87,7 @@ PDChart::~PDChart()
 
 void PDChart::setFData(const QVector<QPointF> &points){
     series->clear();
+
     series->replace(points);
 }
 
@@ -103,6 +108,9 @@ void PDChart::setData(const QList<QPointF> &points,QString unit)
     } else if (unit == "s") {
         timeScaleFactor = 1.0;
     }
+
+
+    qDebug() << "timeScaleFactor : " << timeScaleFactor;
 
     QVector<QPointF> convertedPoints;
     for (const QPointF &point : points) {
