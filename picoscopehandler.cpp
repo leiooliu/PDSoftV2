@@ -199,6 +199,109 @@ void PicoScopeHandler::simulationProcessSamples(){
         acquisitionInProgress = false;
     }
 }
+//分段采集
+void PicoScopeHandler::configureMemorySegments(uint32_t nSegments) {
+    if (handle == 0) {
+        QMessageBox::information(nullptr, "Error", "设备未初始化");
+        return;
+    }
+
+    this->nSegments = nSegments;
+    status = ps2000aMemorySegments(handle, nSegments, &maxSamplesPerSegment);
+    if (status != PICO_OK) {
+        QMessageBox::information(nullptr, "Error", "分段内存配置错误，错误代码：" + QString::number(status));
+        return;
+    }
+}
+
+void PicoScopeHandler::runSegmentedAcquisition(uint32_t nSegments) {
+    if (acquisitionInProgress) {
+        QMessageBox::information(nullptr, "Error", "采集正在进行中，请稍后再试");
+        return;
+    }
+
+    acquisitionInProgress = true;
+
+    // 配置分段内存
+    configureMemorySegments(nSegments);
+
+    // 验证时基和样本数
+    float timeIntervalNs;
+    int32_t maxSamples;
+    status = ps2000aGetTimebase2(handle, picoParam->timeBaseObj.timebasevalue, maxSamplesPerSegment * nSegments, &timeIntervalNs, 1, &maxSamples, 0);
+    if (status != PICO_OK) {
+        QMessageBox::information(nullptr, "Error", "无效的时基值或样本数超出范围，错误代码：" + QString::number(status));
+        return;
+    }
+
+    // 确保样本数在范围内
+    if (maxSamplesPerSegment * nSegments > maxSamples) {
+        QMessageBox::information(nullptr, "Error", "样本数超出设备支持范围");
+        return;
+    }
+
+
+    // 设置数据缓存
+    bufferA = std::make_unique<int16_t[]>(maxSamplesPerSegment);
+    for (uint32_t segmentIndex = 0; segmentIndex < nSegments; ++segmentIndex) {
+        status = ps2000aSetDataBuffer(handle, picoParam->Channel, bufferA.get(), maxSamplesPerSegment, segmentIndex, PS2000A_RATIO_MODE_NONE);
+        if (status != PICO_OK) {
+            QMessageBox::information(nullptr, "Error", "数据缓存设置错误，错误代码：" + QString::number(status));
+            acquisitionInProgress = false;
+            return;
+        }
+    }
+
+    // 运行采集块
+    status = ps2000aRunBlock(handle, 0, maxSamplesPerSegment * nSegments, picoParam->timeBaseObj.timebasevalue, NULL, 0, NULL, NULL,NULL);
+    if (status != PICO_OK) {
+        QMessageBox::information(nullptr, "Error", "运行采集块错误，错误代码：" + QString::number(status));
+        acquisitionInProgress = false;
+        return;
+    }
+
+    // 等待采集完成
+    int16_t ready = 0;
+    while (!ready) {
+        status = ps2000aIsReady(handle, &ready);
+        if (status != PICO_OK) {
+            QMessageBox::information(nullptr, "Error", "采集未准备好，错误代码：" + QString::number(status));
+            acquisitionInProgress = false;
+            return;
+        }
+    }
+
+    // 逐段读取数据
+    for (uint32_t segmentIndex = 0; segmentIndex < nSegments; ++segmentIndex) {
+        uint32_t noOfSamples = maxSamplesPerSegment;
+        status = ps2000aGetValues(handle, 0, &noOfSamples, 1, PS2000A_RATIO_MODE_NONE, segmentIndex, NULL);
+        if (status != PICO_OK) {
+            QMessageBox::information(nullptr, "Error", "读取分段数据错误，错误代码：" + QString::number(status));
+            acquisitionInProgress = false;
+            return;
+        }
+
+        // 处理数据
+        QVector<QPointF> segmentData;
+        for (uint32_t i = 0; i < noOfSamples; ++i) {
+            double time = i * picoParam->timeBaseObj.interval / 1e9; // 转换为秒
+            double voltage = adcToVolts(bufferA[i], picoParam->VoltageRange) * 1000; // 转换为毫伏
+            segmentData.append(QPointF(time, voltage));
+        }
+
+        // 更新缓存
+        cacheData.enqueue(segmentData);
+        if (cacheData.size() > picoParam->maxCacheCount) {
+            cacheData.dequeue();
+        }
+
+        // 发射信号更新数据
+        emit dataUpdated();
+    }
+
+    acquisitionInProgress = false;
+}
+
 //运行采集线程
 void PicoScopeHandler::processSamples(PICO_STATUS& status){
 

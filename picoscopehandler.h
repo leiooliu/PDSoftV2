@@ -37,7 +37,8 @@ public:
     void addCacheData(QVector<QPointF> datas);
     //清除缓存
     void removeCacheData();
-
+    //分段采集
+    void runSegmentedAcquisition(uint32_t nSegments);
 signals:
     //数据更新信号
     void dataUpdated();
@@ -63,7 +64,8 @@ private:
     QTimer* simulationTimer;
     QVector<QPointF> displayData;
     QQueue<QVector<QPointF>> cacheData;
-
+    uint32_t nSegments;
+    int32_t maxSamplesPerSegment;
     //缓存
     std::unique_ptr<int16_t[]> bufferA;
 
@@ -77,6 +79,8 @@ private:
     void simulationProcessSamples();
     //adc转换为电压
     double adcToVolts(int16_t adcValue ,PS2000A_RANGE range) const;
+
+    void configureMemorySegments(uint32_t nSegments);
 };
 
 #endif // PICOSCOPEHANDLER_H

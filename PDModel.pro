@@ -10,31 +10,42 @@ CONFIG += c++11
 
 SOURCES += \
     enumbinder.cpp \
-    filehandle.cpp \
+    fftanalyzer.cpp \
+    filemanager.cpp \
+    harmonic.cpp \
+    harmonictablemodel.cpp \
     main.cpp \
     mainwindow.cpp \
     pdchart.cpp \
     picoscopehandler.cpp \
+    rendertimechart.cpp \
+    segmenthandle.cpp \
     singalconvert.cpp \
     tablerender.cpp \
     zoomchartview.cpp
 
 HEADERS += \
     TimeBaseLoader.h \
-    csvloader.h \
+    configloader.h \
     enumbinder.h \
     enummap.h \
-    filehandle.h \
+    fftanalyzer.h \
+    filemanager.h \
+    harmonic.h \
+    harmonictablemodel.h \
     mainwindow.h \
     pdchart.h \
     pdchartview.h \
     picoparam.h \
     picoscopehandler.h \
+    rendertimechart.h \
+    segmenthandle.h \
     singalconvert.h \
     tablerender.h \
     zoomchartview.h
 
 FORMS += \
+    harmonic.ui \
     mainwindow.ui
 
 # Default rules for deployment.
@@ -49,7 +60,13 @@ else:win32:CONFIG(debug, debug|release): LIBS += -L'C:/Program Files/Pico Techno
 INCLUDEPATH += 'C:/Program Files/Pico Technology/SDK/inc'
 DEPENDPATH += 'C:/Program Files/Pico Technology/SDK/inc'
 
-win32: LIBS += -L$$PWD/fftw-3.3.5-dll64/ -llibfftw3-3
-
 INCLUDEPATH += $$PWD/fftw-3.3.5-dll64
 DEPENDPATH += $$PWD/fftw-3.3.5-dll64
+
+
+
+win32: LIBS += -L$$PWD/fftw-3.3.5-dll64/ -llibfftw3-3
+
+
+
+

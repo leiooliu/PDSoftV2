@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1434</width>
+    <width>1567</width>
     <height>850</height>
    </rect>
   </property>
@@ -23,11 +23,23 @@
    <widget class="QGroupBox" name="groupBox">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>10</y>
-      <width>181</width>
-      <height>51</height>
+      <x>11</x>
+      <y>11</y>
+      <width>179</width>
+      <height>50</height>
      </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>16777215</width>
+      <height>50</height>
+     </size>
     </property>
     <property name="title">
      <string>时基</string>
@@ -65,11 +77,17 @@
    <widget class="QGroupBox" name="groupBox_2">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>150</y>
-      <width>181</width>
-      <height>141</height>
+      <x>11</x>
+      <y>145</y>
+      <width>179</width>
+      <height>110</height>
      </rect>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>180</width>
+      <height>110</height>
+     </size>
     </property>
     <property name="title">
      <string>参数</string>
@@ -147,11 +165,17 @@
    <widget class="QGroupBox" name="groupBox_3">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>300</y>
-      <width>181</width>
-      <height>91</height>
+      <x>11</x>
+      <y>261</y>
+      <width>179</width>
+      <height>80</height>
      </rect>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>180</width>
+      <height>80</height>
+     </size>
     </property>
     <property name="title">
      <string>采集</string>
@@ -195,15 +219,34 @@
       <string>清除缓存</string>
      </property>
     </widget>
+    <widget class="QPushButton" name="pushButton_15">
+     <property name="geometry">
+      <rect>
+       <x>99</x>
+       <y>51</y>
+       <width>75</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>后台采集</string>
+     </property>
+    </widget>
    </widget>
    <widget class="QGroupBox" name="groupBox_4">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>397</y>
-      <width>181</width>
-      <height>81</height>
+      <x>11</x>
+      <y>347</y>
+      <width>179</width>
+      <height>80</height>
      </rect>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>16777215</width>
+      <height>80</height>
+     </size>
     </property>
     <property name="title">
      <string>模拟</string>
@@ -251,11 +294,17 @@
    <widget class="QGroupBox" name="groupBox_5">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>480</y>
-      <width>181</width>
-      <height>121</height>
+      <x>11</x>
+      <y>433</y>
+      <width>179</width>
+      <height>120</height>
      </rect>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>16777215</width>
+      <height>120</height>
+     </size>
     </property>
     <property name="title">
      <string>文件</string>
@@ -342,10 +391,10 @@
    <widget class="QGroupBox" name="groupBox_6">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>610</y>
-      <width>181</width>
-      <height>191</height>
+      <x>11</x>
+      <y>559</y>
+      <width>179</width>
+      <height>201</height>
      </rect>
     </property>
     <property name="title">
@@ -365,9 +414,9 @@
    <widget class="QTabWidget" name="tabWidget">
     <property name="geometry">
      <rect>
-      <x>1184</x>
+      <x>1084</x>
       <y>10</y>
-      <width>251</width>
+      <width>481</width>
       <height>801</height>
      </rect>
     </property>
@@ -376,76 +425,120 @@
     </property>
     <widget class="QWidget" name="tab">
      <attribute name="title">
-      <string>频率</string>
+      <string>谐波</string>
      </attribute>
-     <widget class="QPushButton" name="pushButton_6">
+     <widget class="QTableView" name="tableView2">
       <property name="geometry">
        <rect>
-        <x>166</x>
-        <y>9</y>
-        <width>71</width>
-        <height>24</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>筛选</string>
-      </property>
-     </widget>
-     <widget class="QSpinBox" name="beginBox">
-      <property name="geometry">
-       <rect>
-        <x>6</x>
-        <y>10</y>
-        <width>71</width>
-        <height>22</height>
-       </rect>
-      </property>
-      <property name="maximum">
-       <number>250</number>
-      </property>
-      <property name="value">
-       <number>10</number>
-      </property>
-     </widget>
-     <widget class="QSpinBox" name="endBox">
-      <property name="geometry">
-       <rect>
-        <x>87</x>
-        <y>10</y>
-        <width>71</width>
-        <height>22</height>
-       </rect>
-      </property>
-      <property name="maximum">
-       <number>250</number>
-      </property>
-      <property name="value">
-       <number>20</number>
-      </property>
-     </widget>
-     <widget class="QTableView" name="tableView">
-      <property name="geometry">
-       <rect>
-        <x>6</x>
+        <x>0</x>
         <y>40</y>
-        <width>231</width>
-        <height>721</height>
+        <width>471</width>
+        <height>311</height>
        </rect>
       </property>
      </widget>
-    </widget>
-    <widget class="QWidget" name="tab_2">
-     <attribute name="title">
-      <string>缓存</string>
-     </attribute>
      <widget class="QListView" name="listView">
       <property name="geometry">
        <rect>
-        <x>1</x>
-        <y>1</y>
-        <width>241</width>
-        <height>771</height>
+        <x>0</x>
+        <y>410</y>
+        <width>471</width>
+        <height>361</height>
        </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_4">
+      <property name="geometry">
+       <rect>
+        <x>4</x>
+        <y>387</y>
+        <width>53</width>
+        <height>15</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>缓存</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_6">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>352</y>
+        <width>471</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>导出谐波计算结果数据</string>
+      </property>
+     </widget>
+     <widget class="QSpinBox" name="harmonicParam">
+      <property name="geometry">
+       <rect>
+        <x>73</x>
+        <y>10</y>
+        <width>101</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="maximum">
+       <number>2000000000</number>
+      </property>
+      <property name="value">
+       <number>1000</number>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_7">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>13</y>
+        <width>53</width>
+        <height>15</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>基波频率</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_8">
+      <property name="geometry">
+       <rect>
+        <x>180</x>
+        <y>13</y>
+        <width>291</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Hz   (0为软件检测基础频率，如不准确可自定义)</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="lbl_CacheCount">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>387</y>
+        <width>16</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>0</string>
+      </property>
+     </widget>
+     <widget class="QProgressBar" name="progressBar">
+      <property name="geometry">
+       <rect>
+        <x>70</x>
+        <y>384</y>
+        <width>401</width>
+        <height>23</height>
+       </rect>
+      </property>
+      <property name="value">
+       <number>0</number>
       </property>
      </widget>
     </widget>
@@ -453,11 +546,17 @@
    <widget class="QGroupBox" name="groupBox_7">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>70</y>
-      <width>181</width>
-      <height>71</height>
+      <x>11</x>
+      <y>67</y>
+      <width>179</width>
+      <height>72</height>
      </rect>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>180</width>
+      <height>72</height>
+     </size>
     </property>
     <property name="title">
      <string>信号</string>
@@ -520,12 +619,12 @@
      <rect>
       <x>200</x>
       <y>15</y>
-      <width>981</width>
+      <width>881</width>
       <height>791</height>
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>3</number>
     </property>
     <widget class="QWidget" name="tab_3">
      <attribute name="title">
@@ -536,7 +635,7 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>971</width>
+        <width>871</width>
         <height>761</height>
        </rect>
       </property>
@@ -551,12 +650,55 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>971</width>
+        <width>871</width>
         <height>761</height>
        </rect>
       </property>
      </widget>
     </widget>
+    <widget class="QWidget" name="tab_2">
+     <attribute name="title">
+      <string>HarmonicRatio</string>
+     </attribute>
+     <widget class="PDChart" name="chartView_3" native="true">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>871</width>
+        <height>761</height>
+       </rect>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_5">
+     <attribute name="title">
+      <string>HarmonicMagnitude</string>
+     </attribute>
+     <widget class="PDChart" name="chartView_4" native="true">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>871</width>
+        <height>761</height>
+       </rect>
+      </property>
+     </widget>
+    </widget>
+   </widget>
+   <widget class="QPushButton" name="pushButton_14">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>772</y>
+      <width>181</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>设置</string>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -564,8 +706,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1434</width>
-     <height>18</height>
+     <width>1567</width>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
@@ -593,7 +735,7 @@
   <customwidget>
    <class>PDChart</class>
    <extends>QWidget</extends>
-   <header>pdchart.h</header>
+   <header location="global">pdchart.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -17,6 +17,7 @@ public:
     ~PDChart();
     void setData(const QVector<QPointF> &points ,QString unit);
     void setFData(const QVector<QPointF> &points);
+    void setHData(const QVector<QPointF> &points);
     void setTitle(const QString &title);
     void setXAxisTitle(const QString &title);
     void setYAxisTitle(const QString &title);

@@ -2,10 +2,16 @@
 #include "ui_mainwindow.h"
 #include <QMessageBox>
 #include <QFileDialog>
-#include <csvloader.h>
 #include <QStandardItemModel>
 #include <QStandardItem>
 #include <QtConcurrent/QtConcurrent>
+#include <fftanalyzer.h>
+#include <harmonictablemodel.h>
+#include <QTime>
+#include <filemanager.h>
+#include <harmonic.h>
+
+bool isLoadCache;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -13,17 +19,26 @@ MainWindow::MainWindow(QWidget *parent)
     , dataThread(new QThread(this))
     , simulationDataThread(new QThread(this))
     , fftThread(new QThread(this))
+    , configSetting()
 {
     ui->setupUi(this);
     singalConvert = new SingalConvert;
 
+    //加载软件基本配置
+    configSetting = ConfigLoader::loadConfigFromJson("Config.Default.json");
     //加载时基配置
     timeBaseList = TimeBaseLoader::loadFromJson("TimeBase.json");
+
     for(const TimeBase &tb : timeBaseList){
         ui->cb_Timebase->addItem(tb.scope);
     }
     //默认频域图表单位
     frequencyUnit = 0;
+    MaxCacheCount = configSetting.dataCacheCount;
+    ui->harmonicParam->setValue(configSetting.defaultBaseFrequency);
+
+
+
     //采集卡参数
     picoParam = new PicoParam(
         timeBaseList.at(0) ,
@@ -32,7 +47,7 @@ MainWindow::MainWindow(QWidget *parent)
         PS2000A_DC ,
         ui->sb_timebase->value(),
         1.0,
-        64,
+        MaxCacheCount,
         0.0
     );
     //绑定参数
@@ -54,7 +69,12 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(picohandle, &PicoScopeHandler::dataUpdated,this, [this]() {
-        updateGraph(picohandle->getSamples());
+        if(configSetting.realTimeWaveform){
+            updateGraph(picohandle->getSamples());
+        }
+        int ps = static_cast<int>((static_cast<double>(picohandle->getCacheData().size()) / MaxCacheCount) * 100);
+        ui->progressBar->setValue(ps);
+        ui->lbl_CacheCount->setText(QString::number(picohandle->getCacheData().size()));
     });
 
     connect(picohandle,&PicoScopeHandler::cacheDataUpdated ,this ,[](){
@@ -69,10 +89,13 @@ MainWindow::MainWindow(QWidget *parent)
     ui->chartView->setXAxisRange(0,1);
     ui->chartView->setYAxisRange(-5,5);
 
-    ui->cb_Timebase->setCurrentIndex(10);
-    binderVoltage->setCurrentEnumValue(PS2000A_10V);
-    binderCoupling->setCurrentEnumValue(PS2000A_DC);
-    binderChannel->setCurrentEnumValue(PS2000A_CHANNEL_A);
+    ui->cb_Timebase->setCurrentIndex(configSetting.defaultTimeBase);
+    //binderVoltage->setCurrentEnumValue(PS2000A_10V);
+    ui->cb_Voltage->setCurrentIndex(configSetting.defaultVoltage);
+    //binderCoupling->setCurrentEnumValue(PS2000A_DC);
+    ui->cb_Couping->setCurrentIndex(configSetting.defaultCoupling);
+    //binderChannel->setCurrentEnumValue(PS2000A_CHANNEL_A);
+    ui->cb_Channel->setCurrentIndex(configSetting.defaultChannel);
 
     ui->chartView_2->setTitle("频域图");
     ui->chartView_2->setXAxisTitle("MHz");
@@ -86,12 +109,22 @@ MainWindow::MainWindow(QWidget *parent)
     ui->chartView_2->setXAxisTitle(picoParam->timeBaseObj.frequencyUnit);
     ui->chartView_2->setXAxisRange(0 ,picoParam->timeBaseObj.frequencyScope);
 
-    tbRander = new tablerender(ui->tableView);
-    headers.append("Frequency");
-    headers.append("THD");
+    ui->chartView_3->setTitle("谐波占比");
+    ui->chartView_3->setXAxisTitle("kHz");
+    ui->chartView_3->setYAxisTitle("Harmonic Ratio (%)");
+    ui->chartView_3->setLineColor(Qt::blue);
+    ui->chartView_3->setLineWidth(1);
+
+
+    ui->chartView_4->setTitle("谐波能量");
+    ui->chartView_4->setXAxisTitle("kHz");
+    ui->chartView_4->setYAxisTitle("Harmonic Energy");
+    ui->chartView_4->setLineColor(Qt::blue);
+    ui->chartView_4->setLineWidth(1);
 
     picohandle->initialize();
 
+    isLoadCache = false;
 }
 
 MainWindow::~MainWindow()
@@ -108,10 +141,10 @@ MainWindow::~MainWindow()
 //渲染数据
 void MainWindow::updateGraph(const QVector<QPointF> bufferedData){
     ui->chartView->setData(bufferedData,picoParam->timeBaseObj.unit);
-    for(int i=0;i<10;++i){
-        qDebug()<<bufferedData[i].x();
-    }
-    qDebug()<<"-------------";
+    // for(int i=0;i<10;++i){
+    //     qDebug()<<bufferedData[i].x();
+    // }
+    // qDebug()<<"-------------";
 
     double samplingRate = singalConvert->calculateFrequency(bufferedData ,picoParam->samplingRate);
     ui->lbl_fvalues->setText(QString::number(samplingRate/1000));
@@ -130,13 +163,64 @@ void MainWindow::updateGraph(const QVector<QPointF> bufferedData){
             unittype = 2;
         }
 
-        for(int i=0;i<10;++i){
-            qDebug()<<bufferedData[i].x();
-        }
-        qDebug()<<"-------------";
-        auto fftResult = singalConvert->performFFT(bufferedData ,unittype,picoParam->timeBaseObj.conversion);
+        // QTime startTime = QTime::currentTime(); // 获取当前时间
+        const QVector<QPointF> fftResult = singalConvert->performFFT(bufferedData ,unittype,picoParam->timeBaseObj.conversion);
+        // QTime endTime = QTime::currentTime();   // 获取结束时间
+        // // 计算时间差（以毫秒为单位）
+        // int elapsedMilliseconds = startTime.msecsTo(endTime);
+        //qDebug() << "fft 时间:"<< elapsedMilliseconds << "毫秒";
         ui->chartView_2->setFData(fftResult);
     });
+
+    // QtConcurrent::run([=]{
+    //     FFTAnalyzer analyzer(2000);
+    //     double baseFreq = ui->harmonicParam->value();
+    //     QVector<QVector<QVariant>> results = analyzer.analyze(bufferedData,baseFreq);
+
+    //     // 初始化最大值和最小值
+    //     double maxFreq = std::numeric_limits<double>::lowest();
+    //     double minFreq = std::numeric_limits<double>::max();
+    //     double maxRatio = std::numeric_limits<double>::lowest();
+    //     double minRatio = std::numeric_limits<double>::max();
+    //     double maxEnergy = std::numeric_limits<double>::lowest();
+    //     double minEnergy = std::numeric_limits<double>::max();
+
+    //     //绑定tableView
+    //     HarmonicTableModel *tableModel = new HarmonicTableModel();
+    //     tableModel->setData(results);
+    //     ui->tableView2->setModel(tableModel);
+    //     ui->tableView2->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    //     ui->tableView2->verticalHeader()->hide();
+
+    //     QVector<QPointF> harmonicFreqList;
+    //     QVector<QPointF> harmonicEnergyList;
+    //     // 从 results 中提取数据并添加到系列
+    //     for (const auto& row : results) {
+    //         double harmonicFreq = row[1].toDouble()/1000; // 谐波频率 (X 轴)
+    //         double harmonicEnergy = row[2].toDouble()/1000; // 谐波占比 (Y 轴)
+    //         double harmonicRatio = row[3].toDouble(); // 谐波占比 (Y 轴)
+
+    //         // 更新最大值和最小值
+    //         if (harmonicFreq > maxFreq) maxFreq = harmonicFreq;
+    //         if (harmonicFreq < minFreq) minFreq = harmonicFreq;
+    //         if (harmonicRatio > maxRatio) maxRatio = harmonicRatio;
+    //         if (harmonicRatio < minRatio) minRatio = harmonicRatio;
+    //         if(harmonicEnergy > maxEnergy) maxEnergy = harmonicEnergy;
+    //         if(harmonicEnergy < minEnergy) minEnergy = harmonicEnergy;
+
+    //         harmonicFreqList.append(QPointF(harmonicFreq, harmonicRatio));
+    //         harmonicEnergyList.append(QPointF(harmonicFreq, harmonicEnergy));
+    //     }
+
+    //     ui->chartView_3->setXAxisRange(2,maxFreq);
+    //     ui->chartView_3->setYAxisRange(minRatio,60);
+    //     ui->chartView_3->setHData(harmonicFreqList);
+
+    //     ui->chartView_4->setXAxisRange(0,maxFreq);
+    //     ui->chartView_4->setYAxisScale(minEnergy,maxEnergy,maxEnergy/5);
+    //     ui->chartView_4->setHData(harmonicEnergyList);
+
+    // });
 }
 
 //开始模拟数据
@@ -148,7 +232,7 @@ void MainWindow::on_pushButton_clicked()
     ui->textEdit->append("采样数：" + QString::number(picoParam->timeBaseObj.sampleCount));
     ui->textEdit->append("采样时间间隔：" + QString::number(picoParam->timeBaseObj.interval) + " " + picoParam->timeBaseObj.intervalUnit);
     ui->textEdit->append("开始模拟。");
-    ui->textEdit->append("------------------------------");
+    ui->textEdit->append("--------------");
     // 启动数据线程
     simulationDataThread->start();
 }
@@ -169,7 +253,7 @@ void MainWindow::on_pushButton_2_clicked()
     //ui->chartView->clearData();
     qDebug() << "stop simulation.";
     ui->textEdit->append("停止模拟数据。");
-    ui->textEdit->append("------------------------------");
+    ui->textEdit->append("--------------");
 }
 
 //选择时基
@@ -311,7 +395,8 @@ void MainWindow::on_cb_Voltage_currentIndexChanged(int index)
 //单帧渲染
 void MainWindow::on_pushButton_3_clicked()
 {
-    picohandle->startSimulationSingle();
+    //picohandle->startSimulationSingle();
+    picohandle->runSegmentedAcquisition(10);
     ui->textEdit->append(QString::number(picohandle->getSamples().size()));
     //fftData = singalConvert->performFFT(bufferedData ,frequencyUnit);
     //ui->chartView_2->setData(fftData);
@@ -329,7 +414,8 @@ void MainWindow::on_pushButton_4_clicked()
             filePath.append(".csv");
 
         //bool success = file.serializeToFile()
-        CSVLoader::saveDataToCSV(filePath,bufferedData);
+        //CSVLoader::saveDataToCSV(filePath,bufferedData);
+        FileManager::saveCSV(filePath ,bufferedData);
     }
 }
 //加载CSV
@@ -337,28 +423,37 @@ void MainWindow::on_pushButton_5_clicked()
 {
     // 打开文件选择对话框
     QString fileName = QFileDialog::getOpenFileName(this, "Open CSV File", "", "pd Files (*.csv)");
-    bufferedData.clear();
-    CSVLoader::loadDataFromCSV(fileName ,bufferedData);
-    updateGraph(bufferedData);
+    if (!fileName.isEmpty())
+    {
+        bufferedData.clear();
+        FileManager::loadCSV(fileName ,bufferedData);
+        // CSVLoader::loadDataFromCSV(fileName ,bufferedData);
+        updateGraph(bufferedData);
+    }
+
 }
 
-//筛选频率单位
+//保存计算结果
 void MainWindow::on_pushButton_6_clicked()
 {
-    tbRander->render(fftData ,headers ,ui->beginBox->value() ,ui->endBox->value());
+    // 获取文件保存路径
+    QString filePath = QFileDialog::getSaveFileName(this, tr("Save File"), "", tr("Text Files (*.csv);;All Files (*)"));
+    if (!filePath.isEmpty())
+    {
+        FFTAnalyzer analyzer(1);
+        analyzer.exportTableToCSV(ui->tableView2, filePath);
+    }
 }
 
 //加载文件
 void MainWindow::on_pushButton_7_clicked()
 {
     bufferedData.clear();
-
-    FileHandle fileHandle;
     // 打开文件选择对话框
     QString fileName = QFileDialog::getOpenFileName(this, "Open PD File", "", "pd Files (*.pd)");
     if (!fileName.isEmpty())
     {
-        bufferedData = fileHandle.deserializeFromFile(fileName);
+        bufferedData = FileManager::deserializeFromBinary(fileName);
         if(bufferedData.size() > 0){
             updateGraph(bufferedData);
         }else{
@@ -400,11 +495,13 @@ void MainWindow::on_pushButton_9_clicked()
 
 //加载数据到缓存列表
 void MainWindow::appendCacheList(){
+    isLoadCache = true;
     itemModel->clear();
     for(int i=0; i<picohandle->getCacheData().size(); ++i){
         QStandardItem *item = new QStandardItem("采样缓存" + QString::number(i + 1));
         itemModel->appendRow(item);
     }
+    isLoadCache = false;
 }
 
 //选择时基调整值
@@ -419,9 +516,62 @@ void MainWindow::on_sb_timebase_valueChanged(int arg1)
 //点击缓存列表加载数据
 void MainWindow::on_listView_clicked(const QModelIndex &index)
 {
-    if(picohandle->getCacheData().size() > 0){
-        bufferedData = picohandle->getCacheData().at(index.row());
-        updateGraph(bufferedData);
+    if(!isLoadCache){
+        ui->tableView2->setModel(nullptr);
+        if(picohandle->getCacheData().size() > 0){
+            bufferedData = picohandle->getCacheData().at(index.row());
+            updateGraph(bufferedData);
+
+            QtConcurrent::run([=]{
+                // FFTAnalyzer analyzer(2000);
+                // double baseFreq = ui->harmonicParam->value();
+                // QVector<QVector<QVariant>> results = analyzer.analyze(bufferedData,baseFreq);
+
+                // // 初始化最大值和最小值
+                // double maxFreq = std::numeric_limits<double>::lowest();
+                // double minFreq = std::numeric_limits<double>::max();
+                // double maxRatio = std::numeric_limits<double>::lowest();
+                // double minRatio = std::numeric_limits<double>::max();
+                // double maxEnergy = std::numeric_limits<double>::lowest();
+                // double minEnergy = std::numeric_limits<double>::max();
+
+                // //绑定tableView
+                // HarmonicTableModel *tableModel = new HarmonicTableModel();
+                // tableModel->setData(results);
+                // ui->tableView2->setModel(tableModel);
+                // ui->tableView2->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+                // ui->tableView2->verticalHeader()->hide();
+
+                // QVector<QPointF> harmonicFreqList;
+                // QVector<QPointF> harmonicEnergyList;
+                // // 从 results 中提取数据并添加到系列
+                // for (const auto& row : results) {
+                //     double harmonicFreq = row[1].toDouble()/1000; // 谐波频率 (X 轴)
+                //     double harmonicEnergy = row[2].toDouble()/1000; // 谐波占比 (Y 轴)
+                //     double harmonicRatio = row[3].toDouble(); // 谐波占比 (Y 轴)
+
+                //     // 更新最大值和最小值
+                //     if (harmonicFreq > maxFreq) maxFreq = harmonicFreq;
+                //     if (harmonicFreq < minFreq) minFreq = harmonicFreq;
+                //     if (harmonicRatio > maxRatio) maxRatio = harmonicRatio;
+                //     if (harmonicRatio < minRatio) minRatio = harmonicRatio;
+                //     if(harmonicEnergy > maxEnergy) maxEnergy = harmonicEnergy;
+                //     if(harmonicEnergy < minEnergy) minEnergy = harmonicEnergy;
+
+                //     harmonicFreqList.append(QPointF(harmonicFreq, harmonicRatio));
+                //     harmonicEnergyList.append(QPointF(harmonicFreq, harmonicEnergy));
+                // }
+
+                // ui->chartView_3->setXAxisRange(0,maxFreq);
+                // ui->chartView_3->setYAxisRange(minRatio,60);
+                // ui->chartView_3->setHData(harmonicFreqList);
+
+                // ui->chartView_4->setXAxisRange(0,maxFreq);
+                // ui->chartView_4->setYAxisScale(minEnergy,maxEnergy,maxEnergy/5);
+                // ui->chartView_4->setHData(harmonicEnergyList);
+
+            });
+        }
     }
 }
 
@@ -436,9 +586,9 @@ void MainWindow::on_pushButton_12_clicked()
         if (!filePath.endsWith(".pd", Qt::CaseInsensitive))
             filePath.append(".pd");
 
-        //bool success = file.serializeToFile()
-        FileHandle fileHandle;
-        bool success = fileHandle.serializeToFile(filePath ,bufferedData);
+
+        bool success = FileManager::serializeToBinary(filePath ,bufferedData);
+        //bool success = fileHandle.serializeToFile(filePath ,bufferedData);
         if(success){
             QMessageBox::information(nullptr, "SAVE", "文件保存成功");
         }else{
@@ -458,19 +608,19 @@ void MainWindow::on_pushButton_10_clicked()
 
     if (!fileNames.isEmpty())
     {
-        FileHandle fileHandle;
         // 打开文件选择对话框
         picohandle->getCacheData().clear();
         for(QString fileName:fileNames){
             //qDebug() << "file :" << fileName;
-            QVector<QPointF> datas = fileHandle.deserializeFromFile(fileName);
+            // QVector<QPointF> datas = fileHandle.deserializeFromFile(fileName);
+            QVector<QPointF> datas = FileManager::deserializeFromBinary(fileName);
             picohandle->addCacheData(datas);
         }
 
         bufferedData = picohandle->getCacheData().at(0);
         updateGraph(bufferedData);
-
         itemModel->clear();
+
         for(int i = 0; i< picohandle->getCacheData().size(); ++i){
             QStandardItem *item = new QStandardItem("采样缓存" + QString::number(i + 1));
             itemModel->appendRow(item);
@@ -487,8 +637,9 @@ void MainWindow::on_pushButton_11_clicked()
         qDebug() << filePath;
         for(int i=0;i<picohandle->getCacheData().size();++i){
             QString binaryFilename = filePath + "/cache_data_" + QString::number(i)  + ".pd";
-            FileHandle fileHandle;
-            success = fileHandle.serializeToFile(binaryFilename ,picohandle->getCacheData()[i]);
+            // FileHandle fileHandle;
+            // success = fileHandle.serializeToFile(binaryFilename ,picohandle->getCacheData()[i]);
+            success = FileManager::serializeToBinary(binaryFilename ,picohandle->getCacheData()[i]);
             if(!success){
                 QMessageBox::critical(this, tr("Error"), tr("Failed to save file for read."));
                 break;
@@ -502,6 +653,7 @@ void MainWindow::on_pushButton_13_clicked()
 {
     picohandle->removeCacheData();
     itemModel->clear();
+    ui->tableView2->setModel(nullptr);
 }
 
 //选择切换耦合方式
@@ -516,5 +668,75 @@ void MainWindow::on_cb_Couping_currentIndexChanged(int index)
         ui->textEdit->append(QString::number(couplint));
         ui->textEdit->append("------------------------------");
     }
+}
+
+
+void MainWindow::on_pushButton_14_clicked()
+{
+
+}
+
+
+void MainWindow::on_harmonicParam_valueChanged(int arg1)
+{
+
+}
+
+
+void MainWindow::on_harmonicParam_editingFinished()
+{
+    // FFTAnalyzer analyzer(2000);
+    // QVector<QVector<QVariant>> results = analyzer.analyze(bufferedData,ui->harmonicParam->value());
+
+    // // 初始化最大值和最小值
+    // double maxFreq = std::numeric_limits<double>::lowest();
+    // double minFreq = std::numeric_limits<double>::max();
+    // double maxRatio = std::numeric_limits<double>::lowest();
+    // double minRatio = std::numeric_limits<double>::max();
+    // double maxEnergy = std::numeric_limits<double>::lowest();
+    // double minEnergy = std::numeric_limits<double>::max();
+
+    // //绑定tableView
+    // HarmonicTableModel *tableModel = new HarmonicTableModel();
+    // tableModel->setData(results);
+    // ui->tableView2->setModel(tableModel);
+    // ui->tableView2->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    // ui->tableView2->verticalHeader()->hide();
+
+    // QVector<QPointF> harmonicFreqList;
+    // QVector<QPointF> harmonicEnergyList;
+    // // 从 results 中提取数据并添加到系列
+    // for (const auto& row : results) {
+    //     double harmonicFreq = row[1].toDouble()/1000; // 谐波频率 (X 轴)
+    //     double harmonicEnergy = row[2].toDouble()/1000; // 谐波占比 (Y 轴)
+    //     double harmonicRatio = row[3].toDouble(); // 谐波占比 (Y 轴)
+
+    //     // 更新最大值和最小值
+    //     if (harmonicFreq > maxFreq) maxFreq = harmonicFreq;
+    //     if (harmonicFreq < minFreq) minFreq = harmonicFreq;
+    //     if (harmonicRatio > maxRatio) maxRatio = harmonicRatio;
+    //     if (harmonicRatio < minRatio) minRatio = harmonicRatio;
+    //     if(harmonicEnergy > maxEnergy) maxEnergy = harmonicEnergy;
+    //     if(harmonicEnergy < minEnergy) minEnergy = harmonicEnergy;
+
+    //     harmonicFreqList.append(QPointF(harmonicFreq, harmonicRatio));
+    //     harmonicEnergyList.append(QPointF(harmonicFreq, harmonicEnergy));
+    // }
+
+    // ui->chartView_3->setXAxisRange(2,maxFreq);
+    // ui->chartView_3->setYAxisRange(minRatio,60);
+    // ui->chartView_3->setHData(harmonicFreqList);
+
+    // ui->chartView_4->setXAxisRange(0,maxFreq);
+    // ui->chartView_4->setYAxisScale(minEnergy,maxEnergy,maxEnergy/5);
+    // ui->chartView_4->setHData(harmonicEnergyList);
+}
+
+//弹出后台采集窗口
+
+void MainWindow::on_pushButton_15_clicked()
+{
+    harmonic *harmonicWin = new  harmonic();
+    harmonicWin->show();
 }
 

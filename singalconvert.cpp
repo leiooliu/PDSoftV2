@@ -106,9 +106,10 @@ QVector<QPointF> SingalConvert::performFFT(QVector<QPointF> dataPoints ,int unit
         return {};
     }
 
+    // 计算采样间隔
     double T = dataPoints[1].x() - dataPoints[0].x();
-    if(isConvert){
-        T *= 1e3;
+    if (isConvert) {
+        T *= 1e3;  // 单位转换（纳秒转微秒等）
     }
     if (T <= 0) {
         qWarning() << "Invalid sampling interval (T):" << T;
@@ -121,27 +122,25 @@ QVector<QPointF> SingalConvert::performFFT(QVector<QPointF> dataPoints ,int unit
         return {};
     }
 
+    // FFT 输入数据（填充 real 和 imag 部分）
     fftw_complex* in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
     fftw_complex* out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
     fftw_plan p = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
 
-    // 填充输入数据
+    // 填充输入数据（仅使用 y 值作为实部，虚部为零）
     for (int i = 0; i < N; ++i) {
         in[i][0] = dataPoints[i].y(); // 实部
         in[i][1] = 0.0;              // 虚部
     }
 
-    fftw_execute(p);
+    fftw_execute(p);  // 执行 FFT
 
     QVector<QPointF> results;
-    const double unitConversion[] = {1.0, 1e-3, 1e-6}; // Hz, kHz, MHz
-    double referenceVoltage = 0.775; // dBu 的参考电压
-    double bandwidth = 1.0 / (T * N); // 频率分辨率
+    const double unitConversion[] = {1.0, 1e-3, 1e-6};  // Hz, kHz, MHz 单位转换
+    double referenceVoltage = 0.775;  // dBu 的参考电压
+    double bandwidth = 1.0 / (T * N);  // 频率分辨率
 
-    qDebug() << "Sampling interval (T):" << T;
-    qDebug() << "Number of samples (N):" << N;
-    qDebug() << "Calculated bandwidth:" << bandwidth;
-
+    // 提取频率和幅值
     for (int i = 0; i < N / 2; ++i) {
         double frequency = i * bandwidth * unitConversion[unit];
         double amplitude = (i == 0 || i == N / 2) ?
@@ -153,13 +152,9 @@ QVector<QPointF> SingalConvert::performFFT(QVector<QPointF> dataPoints ,int unit
         results.append(QPointF(frequency, amplitude_dBu));
     }
 
-    qDebug()<<"unitConversion: "<<unitConversion[unit]<<" ;";
-    qDebug()<<"referenceVoltage: "<<referenceVoltage<<" ;";
-    qDebug()<<"..............................";
-
-    fftw_destroy_plan(p);
-    fftw_free(in);
-    fftw_free(out);
+    fftw_destroy_plan(p);  // 销毁 FFT 计划
+    fftw_free(in);         // 释放输入数据
+    fftw_free(out);        // 释放输出数据
 
     return results;
 }
@@ -301,4 +296,59 @@ std::vector<std::complex<double>> SingalConvert::fft(const QVector<QPointF>& dat
         X[k] = sum;
     }
     return X;
+}
+
+
+void SingalConvert::analyzeHarmonics(const QVector<QPointF>& fft_data,int max_harmonics) {
+    int n = fft_data.size();
+
+    // 确保数据足够处理
+    if (n == 0) {
+        qDebug() << "FFT data is empty!";
+        return;
+    }
+
+    // 提取频率和幅度
+    QVector<double> frequencies(n), magnitudes(n);
+    for (int i = 0; i < n; ++i) {
+        frequencies[i] = fft_data[i].x();
+        magnitudes[i] = fft_data[i].y();
+    }
+
+    // 找到主频率和最大幅值
+    auto max_iter = std::max_element(magnitudes.begin(), magnitudes.end());
+    int peak_index = std::distance(magnitudes.begin(), max_iter);
+    double fundamental_frequency = 50;
+    double fundamental_magnitude = std::abs(magnitudes[peak_index]);
+
+    // 识别谐波频率（2x, 3x, ..., max_harmonics）
+    QVector<double> harmonic_frequencies;
+    for (int i = 2; i <= max_harmonics; ++i) {
+        harmonic_frequencies.append(fundamental_frequency * i);
+    }
+
+    // 找到与谐波最接近的实际频率
+    QVector<double> harmonic_magnitudes;
+    for (double harmonic : harmonic_frequencies) {
+        auto closest_iter = std::min_element(frequencies.begin(), frequencies.end(),
+                                             [harmonic](double a, double b) {
+                                                 return std::abs(a - harmonic) < std::abs(b - harmonic);
+                                             });
+        int closest_index = std::distance(frequencies.begin(), closest_iter);
+        harmonic_magnitudes.append(magnitudes[closest_index]);
+    }
+
+    QVector<double> harmonic_ratios;
+    for (double magnitude : harmonic_magnitudes) {
+        harmonic_ratios.append(std::abs(magnitude) / fundamental_magnitude);
+    }
+
+    // 打印谐波分析结果
+    qDebug() << "Harmonic Order | Harmonic Frequency (Hz) | Harmonic Magnitude | Ratio to Fundamental (%)";
+    for (int i = 0; i < harmonic_frequencies.size(); ++i) {
+        qDebug() << i + 2 << "\t\t" // Harmonic Order
+                 << harmonic_frequencies[i] << "\t\t" // Harmonic Frequency
+                 << harmonic_magnitudes[i] << "\t\t" // Harmonic Magnitude
+                 << harmonic_ratios[i] * 100 << "%"; // Ratio to Fundamental
+    }
 }

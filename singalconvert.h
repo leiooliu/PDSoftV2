@@ -25,6 +25,10 @@ public:
     std::vector<std::complex<double>> fft(const QVector<QPointF>& data);
 
     QVector<QPointF> convertToFrequencyDomain(const QVector<QPointF>& dataPoints);
+
+    void analyzeHarmonics(const QVector<QPointF>& fft_data,int max_harmonics);
+
+
 };
 
 #endif // SINGALCONVERT_H

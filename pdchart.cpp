@@ -33,6 +33,7 @@ PDChart::PDChart(QWidget *parent):
     chart->addAxis(axisX, Qt::AlignBottom);
     chart->addAxis(axisY, Qt::AlignLeft);
     chart->setZValue(20);
+
     series->attachAxis(axisX);
     series->attachAxis(axisY);
 
@@ -86,8 +87,15 @@ PDChart::~PDChart()
 }
 
 void PDChart::setFData(const QVector<QPointF> &points){
-    series->clear();
 
+    series->clear();
+    //chart->createDefaultAxes();
+    series->replace(points);
+}
+
+void PDChart::setHData(const QVector<QPointF> &points){
+    series->clear();
+    //chart->createDefaultAxes();
     series->replace(points);
 }
 
@@ -110,7 +118,7 @@ void PDChart::setData(const QList<QPointF> &points,QString unit)
     }
 
 
-    qDebug() << "timeScaleFactor : " << timeScaleFactor;
+    //qDebug() << "timeScaleFactor : " << timeScaleFactor;
 
     QVector<QPointF> convertedPoints;
     for (const QPointF &point : points) {

@@ -10,8 +10,7 @@
 #include <pdchart.h>
 #include <singalconvert.h>
 #include <tablerender.h>
-#include <filehandle.h>
-
+#include <configloader.h>
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
@@ -52,16 +51,26 @@ private slots:
 
     void on_cb_Couping_currentIndexChanged(int index);
 
+    void on_pushButton_14_clicked();
+
+    void on_harmonicParam_valueChanged(int arg1);
+
+    void on_harmonicParam_editingFinished();
+
+    void on_pushButton_15_clicked();
+
 private:
     Ui::MainWindow *ui;
     PicoParam *picoParam;
     PicoScopeHandler *picohandle;
     QVector<TimeBase> timeBaseList;
+    ConfigSetting configSetting;
     EnumBinder<PS2000A_RANGE> *binderVoltage;
     EnumBinder<enPS2000AChannel> *binderChannel;
     EnumBinder<enPS2000ACoupling> *binderCoupling;
 
     //数据线程
+    int MaxCacheCount;
     //时域线程
     QThread *dataThread;
     QThread *simulationDataThread;
@@ -78,6 +87,7 @@ private:
     int frequencyUnit;
 
     tablerender *tbRander;
+    tablerender *tbFrequency;
 
     QVector<QPointF> fftData;
 

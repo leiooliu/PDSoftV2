@@ -1,0 +1,13 @@
+{
+    "realTimeWaveform":true,
+    "dataCacheCount":64,
+    "defaultTimeBase":10,
+    "defaultCoupling":1,
+    "defaultVoltage":9,
+    "defaultChannel":0,
+    "defaultBaseFrequency":50,
+    "segmentedRenderingChart":false,
+    "renderFFTChart":true,
+    "renderHarmonicChart":true,
+    "renderHarmonicTable":true
+}
