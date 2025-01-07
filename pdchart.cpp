@@ -7,6 +7,8 @@
 #include <QChartView>
 #include <QToolTip>
 #include <QMouseEvent>
+#include <QXYSeries>
+#include <customlineitem.h>
 
 PDChart::PDChart(QWidget *parent):
     QWidget(parent),
@@ -80,16 +82,18 @@ bool PDChart::isPointNearDataPoint(const QPointF &point, const QPointF &dataPoin
 PDChart::~PDChart()
 {
     delete chartView;
-    delete chart;
-    delete series;
-    delete axisX;
-    delete axisY;
+    if(chart!=nullptr)
+        delete chart;
+    if(series!=nullptr)
+        delete series;
+    if(axisX!=nullptr)
+        delete axisX;
+    if(axisY!=nullptr)
+        delete axisY;
 }
 
 void PDChart::setFData(const QVector<QPointF> &points){
-
     series->clear();
-    //chart->createDefaultAxes();
     series->replace(points);
 }
 

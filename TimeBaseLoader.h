@@ -26,6 +26,10 @@ public:
     uint32_t timebasevalue;
     QString frequencyUnit;//频率单位
     double frequencyScope;//频率范围
+    int gridValue;
+    TimeBase(){
+
+    };
     // 构造函数
     TimeBase(const QString &scope,
              int sampleCount ,
@@ -37,7 +41,8 @@ public:
              QString &_intervalUnit,
              uint32_t _timebasevalue,
              QString &_frequencyUnit,
-             double _frequencyScope)
+             double _frequencyScope,
+             int _gridValue)
         : scope(scope),
         sampleCount(sampleCount),
         unit(_unit),
@@ -48,7 +53,8 @@ public:
         intervalUnit(_intervalUnit),
         timebasevalue(_timebasevalue),
         frequencyUnit(_frequencyUnit),
-        frequencyScope(_frequencyScope)
+        frequencyScope(_frequencyScope),
+        gridValue(_gridValue)
     {}
 };
 
@@ -159,9 +165,10 @@ public:
             uint32_t timebasevalue = obj["时基值"].toInt();
             QString frequencyUnit = obj["频域单位"].toString();
             double frequencyScope = obj["频域范围"].toDouble();
+            int gridValue = obj["格子单位值"].toInt();
             timeBaseList.append(TimeBase(
                 scope, sampleCount ,unit ,scale,
-                maxScale ,conversion ,interval ,intervalUnit,timebasevalue,frequencyUnit,frequencyScope
+                maxScale ,conversion ,interval ,intervalUnit,timebasevalue,frequencyUnit,frequencyScope,gridValue
             ));
         }
 

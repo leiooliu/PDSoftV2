@@ -13,7 +13,8 @@ class PDChartView : public QChartView {
 public:
     PDChartView(QChart *chart, QWidget *parent = nullptr) : QChartView(chart, parent) {
         setMouseTracking(true);  // 启用鼠标追踪
-        setRubberBand(QChartView::HorizontalRubberBand);
+        //setRubberBand(QChartView::HorizontalRubberBand);
+        setRubberBand(QChartView::RectangleRubberBand);
         axisX = qobject_cast<QValueAxis*>(chart->axes(Qt::Horizontal).constFirst());
         convert = new SingalConvert;
     }

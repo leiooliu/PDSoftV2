@@ -194,39 +194,35 @@ qreal SingalConvert::findMaxX(const QVector<QPointF>& dataPoints) {
 
 double SingalConvert::calculateFrequency(const QVector<QPointF>& samples, double sampling_rate) {
     size_t N = samples.size();
-    if (N == 0 || sampling_rate <= 0) return 0;
+    if (N < 2) return 0;
 
-    // 计算信号的平均值
-    double sum_samples = 0;
-    for (size_t i = 0; i < N; ++i) {
-        sum_samples += samples[i].y();
-    }
-    double mean = sum_samples / N;
+    // 计算信号均值
+    double mean = std::accumulate(samples.begin(), samples.end(), 0.0,
+                                  [](double sum, const QPointF& p) { return sum + p.y(); }) / N;
 
-    // 计算零交叉点（使用线性插值提高精度）
+    // 计算采样率
+    double total_time = samples.back().x() - samples.front().x();
+    if (total_time <= 0) return 0;  // 检查时间跨度
+    double sampling_rate_corrected = (N - 1) / total_time;
+
+    // 零交叉点计数
     size_t zero_crossings = 0;
     for (size_t i = 1; i < N; ++i) {
         double y1 = samples[i - 1].y() - mean;
         double y2 = samples[i].y() - mean;
 
-        if (y1 * y2 < 0) { // 检测到零交叉
-            // 线性插值估计零交叉点时间
-            double t1 = samples[i - 1].x();
-            double t2 = samples[i].x();
-            double zero_cross_time = t1 - y1 * (t2 - t1) / (y2 - y1); // 近似零点时间
+        if (y1 * y2 < 0) { // 检测零交叉
             zero_crossings++;
         }
     }
 
+    // 检查零交叉数
     if (zero_crossings < 2) return 0;
 
-    // 计算周期数和频率
-    double periods = zero_crossings / 2.0;
-    double period_time = (N / periods) / sampling_rate;
+    // 计算频率
+    double frequency = sampling_rate_corrected * (zero_crossings / 2.0) / N;
 
-    if (period_time <= 0) return 0;
-
-    return 1.0 / period_time; // 频率，单位为 Hz
+    return frequency;
 }
 
 double SingalConvert::measurePeakValue(const QVector<QPointF> data){

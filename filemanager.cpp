@@ -59,6 +59,58 @@ bool FileManager::saveCSV(const QString &fileName, const QVector<QPointF> &dataP
     return true;
 }
 
+//保存原始格式的数据到csv
+bool FileManager::saveRawCSV(const QString &fileName ,const QVector<double> &rawData){
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        showError("Cannot open file for writing: " + fileName);
+        return false;
+    }
+
+    QTextStream out(&file);
+    out << "adc";
+    for (const double &point : rawData) {
+        out << point << "\n";
+    }
+
+    file.close();
+    return true;
+}
+
+bool FileManager::loadRawCSV(const QString &fileName ,QVector<double> &rawData){
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        showError("Cannot open file for reading: " + fileName);
+        return false;
+    }
+
+    QTextStream in(&file);
+    QString line = in.readLine(); // 读取表头
+
+    // 检查表头是否为 "adc"
+    if (line != "adc") {
+        showError("Invalid file format: Missing or incorrect header 'adc'.");
+        file.close();
+        return false;
+    }
+
+    // 读取数据行
+    while (!in.atEnd()) {
+        line = in.readLine();
+        bool ok;
+        qreal value = line.toDouble(&ok); // 解析每一行的单个数据
+
+        if (ok) {
+            rawData.append(value); // 将有效的值添加到 dataPoints
+        } else {
+            qDebug() << "Invalid data line:" << line; // 打印无效数据行
+        }
+    }
+
+    file.close();
+    return true;
+}
+
 // 序列化数据到二进制文件
 bool FileManager::serializeToBinary(const QString &fileName, const QVector<QPointF> &data) {
     QFile file(fileName);
@@ -117,6 +169,70 @@ QVector<QPointF> FileManager::deserializeFromBinary(const QString &fileName) {
             return {}; // 返回空的 QVector<QPointF>
         }
         data[i] = QPointF(x, y);
+    }
+
+    file.close();
+    //qDebug() << "Deserialization complete.";
+
+    return data;
+}
+
+bool FileManager::serializeToBinary(const QString &fileName, const QVector<double> &data)
+{
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly)) {
+        qCritical("Failed to open file for writing: %s", qPrintable(fileName));
+        return false;
+    }
+
+    QDataStream out(&file);
+    out.setVersion(QDataStream::Qt_6_6); // 设置版本以确保兼容性
+
+    // 写入数据点的数量
+    int size = data.size();
+    out << size;
+
+    // 写入数据点
+    for (const double& point : data) {
+        out << point;
+    }
+
+    file.close();
+    qDebug() << "Serialization complete.";
+
+    return true;
+}
+QVector<double> FileManager::deserializeRawFromBinary(const QString &fileName){
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qCritical("Failed to open file for reading: %s", qPrintable(fileName));
+        return {}; // 返回空的 QVector<QPointF>
+    }
+
+    QDataStream in(&file);
+    in.setVersion(QDataStream::Qt_6_6); // 设置版本以确保兼容性
+
+    int size;
+    in >> size; // 读取数据点的数量
+    if (in.status() != QDataStream::Ok) {
+        qCritical("Error reading the number of points from the file.");
+        file.close();
+        return {}; // 返回空的 QVector<QPointF>
+    }
+
+    //qDebug() << "Number of points read:" << size;
+
+    QVector<double> data(size);
+
+    for (int i = 0; i < size; ++i) {
+        qreal x;
+        in >> x ;
+        if (in.status() != QDataStream::Ok) {
+            qCritical("Error reading point data from the file at index %d.", i);
+            file.close();
+            return {}; // 返回空的 QVector<QPointF>
+        }
+        data[i] = x;
     }
 
     file.close();

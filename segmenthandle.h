@@ -6,7 +6,8 @@
 #include <io.h>
 #include <fcntl.h>
 #include "ps2000aApi.h"
-class SegmentHandle : public QThread
+#include <tools.h>
+class SegmentHandle : public QObject
 {
     Q_OBJECT
 
@@ -15,17 +16,30 @@ public:
     SegmentHandle(PS2000A_RANGE range, PS2000A_COUPLING coupling, PS2000A_CHANNEL channel,
                   int segmentCount, int samplesPerSegment, int timebase, QObject *parent = nullptr);
 
-    // adc值转换为电压
-    double adcToVolts(int16_t adcValue, PS2000A_RANGE range);
-
     // 重写run方法，线程的工作将在此执行
-    void run() override;
+    //void run() override;
+    bool open();
+    bool close();
+
+    ~SegmentHandle();
+    void clearData();
+    void loadData();
+    //更换时基参数
+    void changeTimebase(int timebaseValue);
+    //更换采样数
+    void changeSamplesCount(int samplesCount);
+    //计算采样率
+    QString calculateSamplingRate(double timeIntervalSeconds, int totalSamples);
 
 signals:
     // 进度更新信号
     void progressUpdated(int percentage);
     // 数据准备完成信号
     void dataReady(const QVector<QPointF>& data);
+    // 原始数据准备完成信号
+    void rawDataReady(const QVector<double>& data,double timeIntervalNanoseconds);
+    //
+    void sendLog(QString log);
     // 线程结束信号
     void finished();
 
@@ -36,6 +50,10 @@ private:
     int _segmentCount;
     int _samplesPerSegment;
     int _timebase;
+    QVector<QPointF> datas;
+    QVector<double> rawdatas;
+    int16_t handle;
+    PICO_STATUS status;
 };
 
 #endif // SEGMENTHANDLE_H

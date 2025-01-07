@@ -11,73 +11,23 @@
 FFTAnalyzer::FFTAnalyzer(int maxHarmonics)
     : maxHarmonics(maxHarmonics),fft_in(nullptr), fft_out(nullptr) {
 
-    fftw_init_threads();
-    int numThreads = std::thread::hardware_concurrency();
-    if (numThreads == 0) numThreads = 4; // 默认线程数
-    fftw_plan_with_nthreads(numThreads);
-
-    // 预分配 FFT 缓存，假设最大支持 1M 数据
-    const int MAX_FFT_SIZE = 2048 * 2048; // 可根据需求调整
-    fft_in = (double*)fftw_malloc(sizeof(double) * MAX_FFT_SIZE);
-    fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * MAX_FFT_SIZE);
 }
 
 // 析构函数
 FFTAnalyzer::~FFTAnalyzer() {
-    fftw_free(fft_in);
-    fftw_free(fft_out);
-    fftw_cleanup_threads(); // 清理多线程资源
+
+}
+
+void FFTAnalyzer::setData(std::vector<double> frequencies,std::vector<double> magnitudes ,double targetFreq){
+    _frequencies = frequencies;
+    _magnitudes = magnitudes;
+    customFundamentalFrequency = targetFreq;
 }
 
 void FFTAnalyzer::run(){
-    if (data->size() < 2) {
-        std::cerr << "输入数据不足，无法进行FFT分析。" << std::endl;
-        return;
-    }
-
-    // 提取时间和电压数据
-    std::vector<double> time, voltage;
-    for (const auto& point : *data) {
-        time.push_back(point.x());
-        voltage.push_back(point.y());
-    }
-
-    // 确保数据是按时间排序的（如果有必要）
-    if (!std::is_sorted(time.begin(), time.end())) {
-        std::cerr << "输入数据未按时间排序，请检查输入数据。" << std::endl;
-        return;
-    }
-
-    // 计算采样率
-    double samplingRate = 1.0 / (time[1] - time[0]);
-
-    // 准备 FFT 数据
-    int N = voltage.size();
-    fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
-    fft_in = (double*)fftw_malloc(sizeof(double) * N);
-
-    for (int i = 0; i < N; ++i) {
-        fft_in[i] = voltage[i];
-    }
-
-    // 执行 FFT
-    fftw_plan plan = fftw_plan_dft_r2c_1d(N, fft_in, fft_out, FFTW_ESTIMATE);
-    fftw_execute(plan);
-
     // 计算频率和幅值
-    std::vector<double> frequencies(N / 2);
-    std::vector<double> magnitudes(N / 2);
-    int maxTimeCount = maxHarmonics + (N / 2);
-    for (int i = 0; i < N / 2; ++i) {
-        magnitudes[i] = sqrt(fft_out[i][0] * fft_out[i][0] + fft_out[i][1] * fft_out[i][1]);
-        frequencies[i] = i * samplingRate / N;
-
-        // 更新 FFT 数据计算进度（0% - 50%）
-        if (i % 1000 == 0 || i == N / 2 - 1) {
-            int progress = static_cast<int>((i / static_cast<float>(N / 2)) * 50); // FFT阶段更新到50%
-            emit progressUpdated(progress);
-        }
-    }
+    std::vector<double> frequencies = _frequencies;
+    std::vector<double> magnitudes = _magnitudes;
 
     // 自动检测基频
     double fundamentalFrequency = 0.0;
@@ -150,9 +100,6 @@ void FFTAnalyzer::run(){
     // ====== 4. 最终进度更新 ======
     emit progressUpdated(100); // 确保进度条更新到 100%
     //emit progressUpdated(finalProgress);  // 发出进度信号，确保到达100%
-
-    // 清理 FFTW
-    fftw_destroy_plan(plan);
 
     emit dataReady(results);
 
