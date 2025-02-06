@@ -28,8 +28,12 @@ public:
     void changeTimebase(int timebaseValue);
     //更换采样数
     void changeSamplesCount(int samplesCount);
+    //更换电压幅值
+    void changeRange(PS2000A_RANGE range);
     //计算采样率
     QString calculateSamplingRate(double timeIntervalSeconds, int totalSamples);
+    //设置触发器
+    void useTriggers(bool isUsed);
 
 signals:
     // 进度更新信号
@@ -54,6 +58,7 @@ private:
     QVector<double> rawdatas;
     int16_t handle;
     PICO_STATUS status;
+    bool isUseTriggers;
 };
 
 #endif // SEGMENTHANDLE_H

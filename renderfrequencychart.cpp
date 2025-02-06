@@ -12,7 +12,6 @@ RenderFrequencyChart::RenderFrequencyChart(PDChart *pdChart ,QObject *parent)
     _chart->setXAxisRange(0,5);
     // ui->chartView_2->setYAxisRange(-200,100);
     _chart->setYAxisScale(-100 ,100 ,10);
-
 }
 
 // 创建LOD缓存
@@ -107,4 +106,15 @@ void RenderFrequencyChart::clear(){
     _chart->clearData();
 }
 
+void RenderFrequencyChart::setXRange(double min ,double max){
+    minFreq = min;
+    maxFreq = max;
+    _chart->setXAxisRange(min,max);
+}
+
+void RenderFrequencyChart::setYRange(double min ,double max){
+    minEnergy = min;
+    maxEnergy = max;
+    _chart->setYAxisRange(min,max);
+}
 

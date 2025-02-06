@@ -13,9 +13,15 @@ class RenderTimeChart : public QThread
 public:
     explicit RenderTimeChart(PDChart *pdChart, QObject *parent = nullptr);
     void render(const QVector<QPointF> &datas,QString unit);
-    void render(const QVector<double> soucedata , PS2000A_RANGE range, TimeBase timebase);
+    void render(const QVector<double> sourceData , PS2000A_RANGE range, TimeBase timebase);
+    void changeY(PS2000A_RANGE range);
+    void changeX(TimeBase timebase);
     void run() override;
     void clear();
+
+    void setXRange(double min ,double max);
+    void setYRange(double min ,double max);
+
 signals:
     void progressUpdated(int percentage);
     void dataRendey();
@@ -37,5 +43,13 @@ private:
 
     // 设置数据并创建LOD
     void setFData(const QVector<QPointF>& points);
+
+    double _xMin = 0;
+    double _xMax = 10;
+    double _xIntervals = 1.0;
+    double _yMin = -5000;
+    double _yMax = 5000;
+    double _yIntervals = 1.0;
+
 };
 #endif // RENDERTIMECHART_H

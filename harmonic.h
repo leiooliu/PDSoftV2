@@ -9,6 +9,9 @@
 #include <fftanalyzer.h>
 #include "renderfrequencychart.h"
 #include "ffthandle.h"
+#include <autoexecutor.h>
+#include "configloader.h"
+#include <enummap.h>
 
 namespace Ui {
 class harmonic;
@@ -31,14 +34,30 @@ private slots:
     void on_pushButton_8_clicked();
     void on_pushButton_9_clicked();
     void on_pushButton_6_clicked();
-
     void on_pushButton_10_clicked();
-
     void on_pushButton_11_clicked();
-
     void on_pushButton_12_clicked();
-
     void on_pushButton_13_clicked();
+    void on_pushButton_14_clicked();
+    void on_cb_Timebase_currentIndexChanged(int index);
+
+    void on_cb_Voltage_currentIndexChanged(int index);
+
+    void on_pushButton_15_clicked();
+
+    void on_pushButton_16_clicked();
+
+    void on_dsb_time_x_max_valueChanged(double arg1);
+
+    void on_dsb_time_x_min_valueChanged(double arg1);
+
+    void on_dsb_frequency_x_max_valueChanged(double arg1);
+
+    void on_dsb_frequency_x_min_valueChanged(double arg1);
+
+    void on_reloadConfig_btn_clicked();
+
+    void on_checkBox_stateChanged(int arg1);
 
 private:
     Ui::harmonic *ui;
@@ -55,7 +74,7 @@ private:
     QVector<double> bufferedRawData;
     //绑定tableView
     HarmonicTableModel *tableModel;
-    QVector<QVector<QVariant>> results ;
+    QVector<QVector<QVariant>> results;
     void harmonicRunReady(const QVector<QVector<QVariant>> result);
     FFTAnalyzer *analyzer;
     FFTHandle *fftHandle;
@@ -64,7 +83,20 @@ private:
     void recvLog(QString log);
     TimeBase currentTimebase;
     double calculateFrequency(const QVector<double>& data, double sampleInterval);
+    //判断信号中是否存在谐波
+    bool detectHarmonics(const QVector<double>& adcData, double threshold);
     double _timeIntervalNanoseconds;
+
+    bool isRunning;
+    ConfigSetting configSetting;
+
+    void loadSettings();
+
+    EnumBinder<PS2000A_RANGE> *binderVoltage;
+    EnumBinder<enPS2000AChannel> *binderChannel;
+    EnumBinder<enPS2000ACoupling> *binderCoupling;
+
+    PS2000A_RANGE cunnentRange;
 };
 
 #endif // HARMONIC_H

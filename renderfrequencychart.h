@@ -12,6 +12,10 @@ public:
     void run() override;
     void clear();
     void setFData(const QVector<QPointF>& points);
+
+    void setXRange(double min ,double max);
+    void setYRange(double min ,double max);
+
 signals:
     void dataRendy();
     void renderFinished(const QVector<QPointF> &data);

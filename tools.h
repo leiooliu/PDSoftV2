@@ -2,6 +2,8 @@
 #define TOOLS_H
 
 #include <ps2000aApi.h>
+#include <QString>
+#include <QDateTime>
 class PDTools{
 public:
     // adc值转换为电压
@@ -25,6 +27,13 @@ public:
         }
         int16_t adcMaxValue = 32767; // 16位ADC的最大值
         return (static_cast<double>(adcValue) / adcMaxValue) * maxVoltage;
+    }
+
+    static QString createLogMsg(QString log){
+        QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss.zzz");
+        // 将时间戳和日志内容拼接
+        QString logMessage = timestamp + " - " + log;
+        return logMessage;
     }
 };
 

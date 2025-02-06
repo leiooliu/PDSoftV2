@@ -5,6 +5,12 @@ SegmentHandle::SegmentHandle(PS2000A_RANGE range, PS2000A_COUPLING coupling, PS2
                              int segmentCount, int samplesPerSegment, int timebase, QObject *parent)
     : _range(range), _coupling(coupling), _channel(channel),
     _segmentCount(segmentCount), _samplesPerSegment(samplesPerSegment), _timebase(timebase) {
+    isUseTriggers = true;
+}
+
+//设置触发器
+void SegmentHandle::useTriggers(bool isUsed){
+    isUseTriggers = isUsed;
 }
 
 bool SegmentHandle::open(){
@@ -53,6 +59,11 @@ void SegmentHandle::changeSamplesCount(int samplesCount){
     _samplesPerSegment = samplesCount;
 }
 
+//更换电压幅值
+void SegmentHandle::changeRange(PS2000A_RANGE range){
+    _range = range;
+}
+
 // 新增计算采样率的方法
 QString SegmentHandle::calculateSamplingRate(double timeIntervalSeconds, int totalSamples) {
     if (timeIntervalSeconds <= 0 || totalSamples < 2) {
@@ -88,20 +99,20 @@ void SegmentHandle::loadData(){
     }
     emit sendLog("已设置通道 ... ");
 
+    int16_t triggersEnable = isUseTriggers == true ? 1 : 0;
     // 设置触器发条件
-    status = ps2000aSetSimpleTrigger(
-        handle,                // 设备句柄
-        1,                     // 启用触发
-        PS2000A_CHANNEL_A,     // 使用通道A触发
-        0,                     // 阈值 0 V (ADC单位：0)
-        PS2000A_RISING,        // 上升沿触发
-        0,                     // 延迟采样数
-        0                      // 自动触发延迟时间(毫秒)
-        );
+    status = ps2000aSetSimpleTrigger(handle,         // 设备句柄
+                                     triggersEnable, // 启用触发
+                                     _channel,       // 使用通道A触发
+                                     0, // 阈值 0 V (ADC单位：0)
+                                     PS2000A_RISING, // 上升沿触发
+                                     0,              // 延迟采样数
+                                     0 // 自动触发延迟时间(毫秒)
+                                     );
 
     if (status != PICO_OK) {
         emit sendLog("出发条件设置失败，错误代码 " + QString::number(status));
-        emit finished();  // 线程结束信号
+        emit finished(); // 线程结束信号
         return;
     }
 
@@ -122,7 +133,8 @@ void SegmentHandle::loadData(){
     float timeIntervalNanoseconds = 0;
     int16_t oversample = 1;
 
-    status = ps2000aGetTimebase2(handle, timebase, samplesPerSegment, &timeIntervalNanoseconds, oversample, &maxSamplesPerSegment, 0);
+    status = ps2000aGetTimebase2(handle, timebase, samplesPerSegment,
+                                 &timeIntervalNanoseconds, oversample, &maxSamplesPerSegment, 0);
 
     if (status != PICO_OK || samplesPerSegment > maxSamplesPerSegment) {
         emit sendLog("时间基准无效或样本数超出设备支持范围");
@@ -130,7 +142,7 @@ void SegmentHandle::loadData(){
         return;
     }
     emit sendLog("已确定时间基准，设置采样 ... ");
-    //emit sendLog("采样率："+calculateSamplingRate(timeIntervalNanoseconds * 1e-9 ,samplesPerSegment));
+    emit sendLog("采样率："+calculateSamplingRate(timeIntervalNanoseconds * 1e-9 ,samplesPerSegment));
 
     // 设置数据缓存
     int16_t* buffer = new int16_t[samplesPerSegment];

@@ -9,8 +9,10 @@ CONFIG += c++11
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    autoexecutor.cpp \
     enumbinder.cpp \
     fftanalyzer.cpp \
+    ffthandle.cpp \
     filemanager.cpp \
     harmonic.cpp \
     harmonictablemodel.cpp \
@@ -18,6 +20,7 @@ SOURCES += \
     mainwindow.cpp \
     pdchart.cpp \
     picoscopehandler.cpp \
+    renderfrequencychart.cpp \
     rendertimechart.cpp \
     segmenthandle.cpp \
     singalconvert.cpp \
@@ -26,10 +29,13 @@ SOURCES += \
 
 HEADERS += \
     TimeBaseLoader.h \
+    autoexecutor.h \
     configloader.h \
+    customlineitem.h \
     enumbinder.h \
     enummap.h \
     fftanalyzer.h \
+    ffthandle.h \
     filemanager.h \
     harmonic.h \
     harmonictablemodel.h \
@@ -38,10 +44,12 @@ HEADERS += \
     pdchartview.h \
     picoparam.h \
     picoscopehandler.h \
+    renderfrequencychart.h \
     rendertimechart.h \
     segmenthandle.h \
     singalconvert.h \
     tablerender.h \
+    tools.h \
     zoomchartview.h
 
 FORMS += \

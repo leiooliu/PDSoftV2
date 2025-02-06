@@ -9,5 +9,16 @@
     "segmentedRenderingChart":false,
     "renderFFTChart":true,
     "renderHarmonicChart":true,
-    "renderHarmonicTable":true
+    "renderHarmonicTable":true,
+
+    "autoOpenDevice":false,
+    "autoSaveRawData":false,
+	"autoSaveFolder":"./rawfile/",
+    "timeBaseValue":3,
+    "sampleCount":5000001,
+    "autoRenderFrequency":true,
+    "autoCalculateHarmonicResult":true,
+    "autoCalculateSingalFreq":true,
+    "harmonicCalculateCount":2000,
+    "autoLoadDelay":5000
 }
