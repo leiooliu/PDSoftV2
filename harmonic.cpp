@@ -7,6 +7,45 @@
 #include <fftw3.h> // 使用已有的FFTW库
 #include <chrono>
 
+double harmonic::calculateFrequencyByZero(const QVector<double>& data, double samplingInterval)
+{
+    samplingInterval *= 1e-9; // 纳秒转秒
+    QVector<int> zeroCrossings; // 用于存储过零点的索引
+
+    // 遍历信号数据，找到过零点
+    for (int i = 1; i < data.size(); ++i) {
+        if ((data[i-1] > 0 && data[i] <= 0) || (data[i-1] < 0 && data[i] >= 0)) {
+            // 检测到过零点（从正到负，或从负到正）
+            zeroCrossings.append(i);
+        }
+
+        // 如果已经找到三个过零点，则停止查找
+        if (zeroCrossings.size() >= 3) {
+            break;
+        }
+    }
+
+    // 如果没有找到三个过零点，返回0
+    if (zeroCrossings.size() < 3) {
+        recvLog("没有足够的过零点。");
+        return 0.0;
+    }
+
+    // 计算前三个过零点之间的周期，并计算频率
+    double totalPeriod = 0.0;
+    for (int i = 0; i < 2; ++i) {
+        int deltaN = zeroCrossings[i+1] - zeroCrossings[i];
+        double period = deltaN * samplingInterval;  // 计算周期
+        totalPeriod += period;
+    }
+
+    // 计算平均周期
+    double averagePeriod = totalPeriod / 2; // 取两段周期的平均值
+    double frequency = 1.0 / averagePeriod;  // 频率是周期的倒数
+
+    return frequency;
+}
+
 // 函数：计算频率
 // 参数：
 // - data: QVector<double>，存储原始的ADC数据
@@ -15,39 +54,71 @@
 // - sampleInterval: double，采样间隔（单位 ns）
 // 返回值：double，计算得到的主频率（单位 Hz）
 double harmonic::calculateFrequency(const QVector<double>& data, double sampleInterval) {
-    // 将采样间隔从纳秒转换为秒
-    sampleInterval *= 1e-9;
-    int sampleCount = data.size();
-    // 检查输入有效性
-    if (data.isEmpty() || sampleCount <= 1 || sampleInterval <= 0) {
-        return 0.0; // 无效输入返回0
+    sampleInterval *= 1e-9; // 纳秒转秒
+    int N = data.size();
+    if (data.isEmpty() || N <= 1 || sampleInterval <= 0) {
+        return 0.0;
     }
 
-    // 使用 FFTW 进行快速傅里叶变换
-    int N = sampleCount;
-    fftw_complex* out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
-    fftw_plan plan = fftw_plan_dft_r2c_1d(N, const_cast<double*>(data.data()), out, FFTW_ESTIMATE);
+    // 分配内存
+    int outSize = N/2 + 1;
+    double* in = fftw_alloc_real(N);
+    fftw_complex* out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * outSize);
 
-    // 执行 FFT
+    // 使用汉宁窗，计算窗函数总和
+    double sumWindow = 0.0;
+    for (int i = 0; i < N; ++i) {
+        double window = 0.5 * (1 - cos(2 * M_PI * i / (N-1)));
+
+        //对瞬态信号改用平顶窗口
+        // double window = 0.21557895
+        //                 - 0.41663158 * cos(2*M_PI*i/(N-1))
+        //                 + 0.277263158 * cos(4*M_PI*i/(N-1))
+        //                 - 0.083578947 * cos(6*M_PI*i/(N-1))
+        //                 + 0.006947368 * cos(8*M_PI*i/(N-1));
+
+        in[i] = data[i] * window;
+        sumWindow += window;
+    }
+
+    // 创建并执行FFT计划
+    fftw_plan plan = fftw_plan_dft_r2c_1d(N, in, out, FFTW_ESTIMATE);
     fftw_execute(plan);
 
-    // 计算频谱幅值并寻找最大频率分量
+    // 跳直流，找最大幅值
     double maxMagnitude = 0.0;
     int peakIndex = 0;
-    for (int i = 0; i < N / 2; ++i) { // 只检查正频率
-        double magnitude = out[i][0] * out[i][0] + out[i][1] * out[i][1]; // 实部和虚部平方和
+    for (int i = 1; i < outSize; ++i) { // 从1开始跳直流
+        // 计算幅值并补偿（汉宁窗补偿）
+        double magnitude = sqrt(out[i][0]*out[i][0] + out[i][1]*out[i][1]) * 2.0 / sumWindow;
+
         if (magnitude > maxMagnitude) {
             maxMagnitude = magnitude;
             peakIndex = i;
         }
     }
 
-    // 释放 FFT 资源
+    // 抛物线插值优化
+    double Fs = 1.0 / sampleInterval;
+    double frequency = peakIndex * Fs / N;
+
+    if (peakIndex > 0 && peakIndex < outSize-1) {
+        // 获取相邻频点幅值（需重新计算补偿）
+        double magPrev = sqrt(out[peakIndex-1][0]*out[peakIndex-1][0] +
+                              out[peakIndex-1][1]*out[peakIndex-1][1]) * 2.0 / sumWindow;
+        double magNext = sqrt(out[peakIndex+1][0]*out[peakIndex+1][0] +
+                              out[peakIndex+1][1]*out[peakIndex+1][1]) * 2.0 / sumWindow;
+
+        // 算频率偏移量
+        double delta = 0.5 * (magPrev - magNext) / (magPrev - 2*maxMagnitude + magNext);
+        frequency = (peakIndex + delta) * Fs / N;
+    }
+
+    // 释放资源
     fftw_destroy_plan(plan);
+    fftw_free(in);
     fftw_free(out);
 
-    // 计算主频率
-    double frequency = (double)peakIndex / (N * sampleInterval);
     return frequency;
 }
 //判断信号中是否存在谐波
@@ -92,7 +163,7 @@ bool harmonic::detectHarmonics(const QVector<double>& adcData, double threshold)
     }
 
     // 计算平均幅值
-    averageMagnitude /= (n / 2);
+    //averageMagnitude /= (n / 2);
 
     // 输出调试信息
     //recvLog("Max Magnitude: " + QString::number(maxMagnitude) + ", Average Magnitude: " + QString::number(averageMagnitude));
@@ -117,6 +188,7 @@ void harmonic::loadSettings(){
     if(ui->cb_Timebase->count() > 0){
         ui->cb_Timebase->clear();
     }
+
     for(const TimeBase &tb : timeBaseList){
         ui->cb_Timebase->addItem(tb.scope);
     }
@@ -231,7 +303,10 @@ void harmonic::updateProgress(int percentage)
 
 void harmonic::onRawDataReady(const QVector<double> &rawdata,double timeIntervalNanoseconds){
     recvLog("采样时间间隔：" + QString::number(timeIntervalNanoseconds) + " ns");
+
     _timeIntervalNanoseconds = timeIntervalNanoseconds;
+    currentTimebase.interval = _timeIntervalNanoseconds;
+
     static bool alreadyProcessed = false;
     if (alreadyProcessed) {
         return; // 如果已处理数据，则直接返回，防止重复绘制
@@ -239,21 +314,23 @@ void harmonic::onRawDataReady(const QVector<double> &rawdata,double timeInterval
     alreadyProcessed = true;
     bufferedRawData = rawdata;
 
+
     timeChart->render(rawdata,cunnentRange,currentTimebase);
     timeChart->run();
 
     if(configSetting.autoCalculateSingalFreq){
         double ns = calculateFrequency(bufferedRawData,timeIntervalNanoseconds);
+        //过0点
+        //double nsZero = calculateFrequencyByZero(bufferedRawData ,timeIntervalNanoseconds);
+
         recvLog("信号频率：" + QString::number(ns));
-        int roundedValue = static_cast<int>(std::round(ns));
-        recvLog("信号频率(四舍五入)：" + QString::number(roundedValue));
-        ui->spinBox->setValue(roundedValue);
+        ui->spinBox->setValue(ns);
     }
 
-    if(configSetting.autoRenderFrequency){
-        fftHandle->setRawDatas(&rawdata ,timeIntervalNanoseconds);
-        fftHandle->run();
-    }
+    // if(configSetting.autoRenderFrequency){
+    //     fftHandle->setRawDatas(&rawdata ,timeIntervalNanoseconds);
+    //     fftHandle->run();
+    // }
 
     if(configSetting.autoSaveRawData){
         QString timestamp = QDateTime::currentDateTime().toString("yyyyMMddHHmmsszzz");
@@ -282,18 +359,26 @@ void harmonic::samplingRateLoad(double samplingRate){
 void harmonic::onDataReady(const QVector<QPointF> &data){
 }
 //时域图表渲染完成
-void harmonic::renderTimeChartFinash(const QVector<QPointF> &data){
+void harmonic::renderTimeChartFinash(const QVector<QPointF> &data ,double timeMultiplier){
     bufferedData = data;
     recvLog("时域图表渲染完成");
-    if(!configSetting.autoCalculateHarmonicResult &&
-        !configSetting.autoRenderFrequency)
-    {
-        //延迟执行采集代码
-        QTimer::singleShot(configSetting.autoLoadDelay, [this]() {
-            //qDebug() << "两秒后执行的代码";
-            on_pushButton_clicked();
-        });
+
+
+    if(configSetting.autoRenderFrequency){
+        fftHandle->setDatas(&bufferedData ,timeMultiplier);
+        //fftHandle->setRawDatas(&rawdata ,timeIntervalNanoseconds);
+        fftHandle->run();
     }
+
+    // if(!configSetting.autoCalculateHarmonicResult &&
+    //     !configSetting.autoRenderFrequency)
+    // {
+    //     //延迟执行采集代码
+    //     QTimer::singleShot(configSetting.autoLoadDelay, [this]() {
+    //         //qDebug() << "两秒后执行的代码";
+    //         on_pushButton_clicked();
+    //     });
+    // }
     //fftHandle->setRawDatas(&bufferedRawData ,_timeIntervalNanoseconds);
     //fftHandle->run();
 }
@@ -458,7 +543,8 @@ void harmonic::on_pushButton_6_clicked()
         ui->cb_Timebase->setCurrentIndex(cb_Timebase_index);
 
         binderVoltage->setCurrentEnumValue(cunnentRange);
-        ui->le_timebase->setText(QString::number(timebaseValue));
+        //ui->le_timebase->setText(QString::number(timebaseValue));
+        ui->le_timebase->setValue(timebaseValue);
         ui->le_samplecount->setText(QString::number(rawdata.size()));
 
         // 记录结束时间
@@ -475,14 +561,15 @@ void harmonic::on_pushButton_6_clicked()
             //判断信号里是否存在谐波
             //detectHarmonics(bufferedRawData,0.05);
 
-            double ns = calculateFrequency(bufferedRawData,3);
-            int roundedValue = static_cast<int>(std::round(ns));
-            recvLog("信号频率："+QString::number(roundedValue));
-            ui->spinBox->setValue(roundedValue);
+            //double nsZero = calculateFrequencyByZero(bufferedRawData ,currentTimebase.interval);
+            //recvLog("过零点信号频率：" + QString::number(nsZero));
+            double ns = calculateFrequency(bufferedRawData,sampleInterval);
+            recvLog("信号频率："+QString::number(ns));
+            ui->spinBox->setValue(ns);
 
             //fftHandle->setDatas(bufferedRawData)
-            fftHandle->setRawDatas(&rawdata ,currentTimebase.interval);
-            fftHandle->run();
+            //fftHandle->setRawDatas(&rawdata ,currentTimebase.interval);
+            //fftHandle->run();
         }else{
             QMessageBox::critical(this, tr("Error"), tr("文件打开错误。"));
         }
@@ -583,7 +670,8 @@ void harmonic::on_cb_Timebase_currentIndexChanged(int index)
     if(ui->cb_Timebase->count() > 1){
         if(timeBaseList.size() > 0){
             currentTimebase = timeBaseList.at(index);
-            ui->le_timebase->setText(QString::number(currentTimebase.timebasevalue));
+            //ui->le_timebase->setText(QString::number(currentTimebase.timebasevalue));
+            ui->le_timebase->setValue(currentTimebase.timebasevalue);
             ui->le_samplecount->setText(QString::number(currentTimebase.sampleCount));
 
             if(!isRunning && bufferedRawData.size() > 0){

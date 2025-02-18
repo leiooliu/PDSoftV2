@@ -64,7 +64,7 @@ private:
     void onDataReady(const QVector<QPointF> &data);
     void onRawDataReady(const QVector<double> &rawdata,double timeIntervalNanoseconds);
     void updateProgress(int percentage);
-    void renderTimeChartFinash(const QVector<QPointF> &data);
+    void renderTimeChartFinash(const QVector<QPointF> &data ,double timeMultiplier);
     void renderFrequencyChartFinash(const QVector<QPointF> &data);
     SegmentHandle *segmentHandle;  // 用于启动数据采集的线程
     QVector<TimeBase> timeBaseList;
@@ -83,6 +83,7 @@ private:
     void recvLog(QString log);
     TimeBase currentTimebase;
     double calculateFrequency(const QVector<double>& data, double sampleInterval);
+    double calculateFrequencyByZero(const QVector<double>& data, double samplingInterval);
     //判断信号中是否存在谐波
     bool detectHarmonics(const QVector<double>& adcData, double threshold);
     double _timeIntervalNanoseconds;

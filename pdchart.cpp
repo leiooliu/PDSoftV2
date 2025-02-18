@@ -189,7 +189,8 @@ void PDChart::setXAxisScale(qreal min, qreal max, qreal interval)
 void PDChart::setYAxisScale(qreal min, qreal max, qreal interval)
 {
     axisY->setRange(min, max);
-    axisY->setTickCount((max - min) / interval + 1); // 设置刻度数量
+    int tickCount = (max - min) / interval + 1;
+    axisY->setTickCount(tickCount); // 设置刻度数量
     axisY->setLabelFormat("%g"); // 格式化标签
 }
 

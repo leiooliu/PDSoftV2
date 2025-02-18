@@ -25,7 +25,7 @@ public:
 signals:
     void progressUpdated(int percentage);
     void dataRendey();
-    void renderFinished(const QVector<QPointF> &datas);
+    void renderFinished(const QVector<QPointF> &datas ,double timeMultiplier);
     void sendLog(QString logs);
 private:
     PDChart *_pdChart;
@@ -43,6 +43,8 @@ private:
 
     // 设置数据并创建LOD
     void setFData(const QVector<QPointF>& points);
+
+    double timeMultiplier;
 
     double _xMin = 0;
     double _xMax = 10;

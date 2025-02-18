@@ -135,37 +135,37 @@ void RenderTimeChart::render(const QVector<QPointF>& datas ,QString unit){
     _unit = unit;
 }
 void RenderTimeChart::render(const QVector<double> sourceData , PS2000A_RANGE range, TimeBase timebase){
-
     QString unit = timebase.unit;
-    int unitValue = timebase.gridValue; //这个要拆解示波器的数字
-    double timeIntervalNanoseconds  = timebase.interval;
+    int unitValue = timebase.gridValue; // 这个要拆解示波器的数字
+    double timeIntervalNanoseconds = timebase.interval;
 
     // 清空旧数据，防止重复
     _datas.clear();
     // 异常检查
     if (sourceData.isEmpty() || unitValue <= 0 || timeIntervalNanoseconds <= 0) {
-        //弹出错误信息后期可以考虑用信号槽来解决阻塞主线程的问题
+        // 弹出错误信息后期可以考虑用信号槽来解决阻塞主线程的问题
         QMessageBox::information(nullptr, "error",
                                  "输入数据为空或单位值无效 : " + QString::number(unitValue) +
                                      ", 时间间隔 (ns): " + QString::number(timeIntervalNanoseconds));
         return; // 输入数据为空或单位值无效
     }
+
     // 定义时间倍率
-    double timeMultiplier = 1.0;
+    timeMultiplier = 1.0;
     if (unit == "ns") {
         timeMultiplier = 1e-9;  // 纳秒
-        if(timebase.conversion){
-            timeMultiplier = 1e-6;
+        if (timebase.conversion) {
+            timeMultiplier = 1e-6;  // 如果转换标志为 true，将单位调整为微秒
         }
     } else if (unit == "us") {
         timeMultiplier = 1e-6;  // 微秒
-        if(timebase.conversion){
-            timeMultiplier = 1e-3;
+        if (timebase.conversion) {
+            timeMultiplier = 1e-3;  // 如果转换标志为 true，将单位调整为毫秒
         }
     } else if (unit == "ms") {
         timeMultiplier = 1e-3;  // 毫秒
-        if(timebase.conversion){
-            timeMultiplier = 1.0;
+        if (timebase.conversion) {
+            timeMultiplier = 1.0;  // 如果转换标志为 true，将单位调整为秒
         }
     } else if (unit == "s") {
         _pdChart->setXAxisTitle("Time (s)");
@@ -174,7 +174,7 @@ void RenderTimeChart::render(const QVector<double> sourceData , PS2000A_RANGE ra
         QMessageBox::information(nullptr, "error", "无效单位: " + unit);
         return; // 无效单位直接返回
     }
-    emit sendLog("timeMultiplier = " + QString::number(timeMultiplier));
+
 
     // 计算总显示时间跨度
     changeX(timebase);
@@ -183,32 +183,22 @@ void RenderTimeChart::render(const QVector<double> sourceData , PS2000A_RANGE ra
     // 将采样间隔从纳秒转换为秒
     double interval = timeIntervalNanoseconds * 1e-9; // 单位转换为秒
 
+    // 调试输出，检查 interval 和 timeMultiplier
+    emit sendLog("Interval（秒） = " + QString::number(interval));
+    emit sendLog("timeMultiplier = " + QString::number(timeMultiplier));
+
     // 提前分配内存
     _datas.reserve(sourceData.size());
     //_datas.reserve(timebase.sampleCount);
 
     // 填充数据
     for (int i = 0; i < sourceData.size(); ++i) {
-        double time = i * interval / timeMultiplier;
-        double volts = PDTools::adcToVolts(sourceData[i], range) * 1000;  //电压统一转化成mv
+        // 确保时间计算时单位一致
+        double time = i * interval / timeMultiplier;  // 计算时间
+        double volts = PDTools::adcToVolts(sourceData[i], range) * 1000;  // 电压统一转化成 mv
         // 添加到结果集中
         _datas.append(QPointF(time, volts));
     }
-
-    // int maxTimeRange = 10 * timebase.gridValue;
-
-    // // 检查当前数据的最后一个时间点
-    // double lastTimePoint = _datas.isEmpty() ? 0 : _datas.last().x();
-
-    // if (lastTimePoint < maxTimeRange) {
-    //     // 如果现有数据不足以覆盖maxTimeRange，需要补充数据
-    //     for (int i = 0; i < sourceData.size(); ++i) {
-    //         double time = lastTimePoint + (i * interval / timeMultiplier);
-    //         double volts = PDTools::adcToVolts(sourceData[i], range) * 1000;  //电压统一转化成mv
-    //         // 添加到结果集中
-    //         _datas.append(QPointF(time, volts));
-    //     }
-    // }
 
     // 设置单位
     _unit = unit;
@@ -225,7 +215,7 @@ void RenderTimeChart::run(){
     emit sendLog("时域图表渲染时间：" + QString::number(elapsed.count()) + " ms");
     //createLOD(_datas); // 预处理LOD数据
     //updateLOD(maxLevels - 1); // 初始显示最低精度
-    emit renderFinished(_datas);  // 线程结束信号
+    emit renderFinished(_datas ,timeMultiplier);  // 线程结束信号
 }
 void RenderTimeChart::clear(){
     _pdChart->clearData();

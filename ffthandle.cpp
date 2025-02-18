@@ -52,8 +52,13 @@ void FFTHandle::setRawDatas(const QVector<double>* _rawData ,double _timeInterva
     timeIntervalNanoseconds = _timeIntervalNanoseconds;
 }
 
-void FFTHandle::setDatas(QVector<QPointF>* _data){
+void FFTHandle::setDatas(QVector<QPointF>* _data ,double _timeMultiplier){
     data = _data;
+    timeMultiplier = _timeMultiplier;
+}
+
+void FFTHandle::calculateNew(){
+
 }
 
 void FFTHandle::calculate(){
@@ -66,7 +71,7 @@ void FFTHandle::calculate(){
     // 提取时间和电压数据
     std::vector<double> time, voltage;
     for (const auto& point : *data) {
-        time.push_back(point.x());
+        time.push_back(point.x()*timeMultiplier);
         voltage.push_back(point.y());
     }
 
@@ -76,13 +81,24 @@ void FFTHandle::calculate(){
         return;
     }
 
+    double delta = time[1] - time[0];
+    // for (size_t i = 2; i < time.size(); ++i) {
+    //     if (std::abs((time[i] - time[i-1]) - delta) > 1e-6) {
+    //         std::cerr << "非均匀采样，FFT结果无效。" << std::endl;
+    //         emit sendLog("错误：非均匀采样数据");
+    //         return;
+    //     }
+    // }
+
     // 计算采样率
-    double samplingRate = 1.0 / (time[1] - time[0]);
+    double samplingRate = 1.0 / delta;
     qDebug()<<"采样率："<<samplingRate;
 
     // 准备 FFT 数据
     int N = voltage.size();
-    fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
+    int output_length = N/2 + 1;
+
+    fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * output_length);
     fft_in = (double*)fftw_malloc(sizeof(double) * N);
 
     for (int i = 0; i < N; ++i) {
@@ -93,11 +109,31 @@ void FFTHandle::calculate(){
     fftw_plan plan = fftw_plan_dft_r2c_1d(N, fft_in, fft_out, FFTW_ESTIMATE);
     fftw_execute(plan);
 
+
+    double referenceVoltage = 0.775;
+
     // 计算频率和幅值
-    std::vector<double> frequencies(N / 2);
-    std::vector<double> magnitudes(N / 2);
-    for (int i = 0; i < N / 2; ++i) {
-        magnitudes[i] = sqrt(fft_out[i][0] * fft_out[i][0] + fft_out[i][1] * fft_out[i][1]);
+    std::vector<double> frequencies(output_length);
+    std::vector<double> magnitudes(output_length);
+
+    for (int i = 0; i < output_length; ++i) {
+
+        double real = fft_out[i][0];
+        double imag = fft_out[i][1];
+        double mag = std::sqrt(real * real + imag * imag) / N;
+
+        //单边普新政（直流和Nyquist分量不 * 2）
+        if(i>0 && i != output_length - 1){
+            mag *= 2;
+        }
+
+        //转换RMS振幅
+        double amplitude_rms = mag / std::sqrt(2);
+
+        //转换为dBu
+        double amplitude_dBu = 20 * std::log10(amplitude_rms / referenceVoltage);
+
+        magnitudes[i] = amplitude_dBu;
         frequencies[i] = i * samplingRate / N;
         // 更新 FFT 数据计算进度（0% - 100%）
         if (i % 1000 == 0 || i == N / 2 - 1) {
@@ -105,6 +141,24 @@ void FFTHandle::calculate(){
             emit porgressUpdated(progress); // 发送进度信号
         }
     }
+
+    // // 每50Hz计算一次分量
+    // for (int i = 0; i * samplingRate / N <= 5000; i += 50) {
+    //     int idx = i * N / samplingRate;
+    //     if (idx >= output_length) break;
+
+    //     double real = fft_out[idx][0];
+    //     double imag = fft_out[idx][1];
+    //     double mag = std::sqrt(real * real + imag * imag) / N;
+
+    //     //单边谱密度调整（直流和Nyquist分量不需要乘2）
+    //     if(i > 0 && i != output_length - 1) {
+    //         mag *= 2;
+    //     }
+
+    //     magnitudes.push_back(mag);
+    //     frequencies.push_back(i * samplingRate / N);
+    // }
 
     emit porgressUpdated(100);
     emit fftReady(frequencies ,magnitudes);
@@ -197,7 +251,8 @@ void FFTHandle::run(){
     //calculate();
     // 记录起始时间
     auto start = std::chrono::high_resolution_clock::now();
-    calculateWitRawData();
+    //calculateWitRawData();
+    calculate();
     // 记录结束时间
     auto end = std::chrono::high_resolution_clock::now();
     // 计算时间差，并转换为毫秒

@@ -186,8 +186,6 @@ void SegmentHandle::loadData(){
             continue;
         }
 
-        // 目标显示范围：10ms
-        //double maxTimeInSeconds = 10.0 / 1000.0; // 10ms 转换为秒
         for(uint32_t i = 0; i<noOfSamples;++i){
             rawdatas.append(buffer[i]);
             // 更新进度条

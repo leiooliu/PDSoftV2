@@ -5,13 +5,13 @@ RenderFrequencyChart::RenderFrequencyChart(PDChart *pdChart ,QObject *parent)
 {
     _chart = pdChart;
     _chart->setTitle("频域图");
-    _chart->setXAxisTitle("MHz");
+    _chart->setXAxisTitle("Hz");
     _chart->setYAxisTitle("dBu");
     _chart->setLineColor(Qt::blue);
     _chart->setLineWidth(0.5);
     _chart->setXAxisRange(0,5);
     // ui->chartView_2->setYAxisRange(-200,100);
-    _chart->setYAxisScale(-100 ,100 ,10);
+    _chart->setYAxisScale(-100 ,100 ,100);
 }
 
 // 创建LOD缓存
@@ -90,10 +90,17 @@ void RenderFrequencyChart::run(){
     _chart->clearData();
     // 记录起始时间
     auto start = std::chrono::high_resolution_clock::now();
-    _chart->setXAxisRange(0,20);
-    _chart->setYAxisRange(minEnergy,5);
+    _chart->setXAxisScale(0,maxFreq,maxFreq/10);
+    //_chart->setYAxisRange(minEnergy,5000);
+    _chart->setYAxisScale(minEnergy ,maxEnergy ,(std::abs(maxEnergy) + std::abs(minEnergy)) /10);
+
+    emit sendLog("minEnergy = " + QString::number(minEnergy));
+    emit sendLog("maxEnergy = " + QString::number(maxEnergy));
     createLOD(_datas); // 预处理LOD数据
     updateLOD(maxLevels - 1); // 初始显示最低精度
+
+    //_chart->setFData(_datas);
+
     emit renderFinished(_datas);
     // 记录结束时间
     auto end = std::chrono::high_resolution_clock::now();

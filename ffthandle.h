@@ -14,7 +14,7 @@ class FFTHandle : public QThread
 public:
     explicit FFTHandle(QObject *parent = nullptr);
     ~FFTHandle();
-    void setDatas(QVector<QPointF>* _data);
+    void setDatas(QVector<QPointF>* _data ,double _timeMultiplier);
     void setRawDatas(const QVector<double>* _rawData,double _timeIntervalNanoseconds);
     void run() override;
     void clearData();
@@ -39,8 +39,11 @@ private:
 
     void calculate();
     void calculateWitRawData();
+    void calculateNew();
 
-     int fft_in_size = 0;  // 用来记录当前 fft_in 的大小
+    int fft_in_size = 0;  // 用来记录当前 fft_in 的大小
+
+    double timeMultiplier;
 
     bool loadWisdomFromFile(const QString& fileName);
     // 保存 Wisdom 到文件
