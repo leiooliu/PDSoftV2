@@ -23,6 +23,7 @@ SOURCES += \
     renderfrequencychart.cpp \
     rendertimechart.cpp \
     segmenthandle.cpp \
+    settings.cpp \
     singalconvert.cpp \
     tablerender.cpp \
     zoomchartview.cpp
@@ -47,6 +48,7 @@ HEADERS += \
     renderfrequencychart.h \
     rendertimechart.h \
     segmenthandle.h \
+    settings.h \
     singalconvert.h \
     tablerender.h \
     tools.h \
@@ -54,7 +56,8 @@ HEADERS += \
 
 FORMS += \
     harmonic.ui \
-    mainwindow.ui
+    mainwindow.ui \
+    settings.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

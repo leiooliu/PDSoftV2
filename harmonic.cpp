@@ -244,9 +244,13 @@ harmonic::harmonic(QWidget *parent)
     connect(segmentHandle, &SegmentHandle::rawDataReady, this, &harmonic::onRawDataReady);
     connect(segmentHandle, &SegmentHandle::sendLog, this, &harmonic::recvLog);
 
+    setWin = new Settings;
+    //链接设置窗口信号
+    connect(setWin ,&Settings::setFinished ,this, &harmonic::settingFinshed);
 
     currentTimebase = timeBaseList.at(configSetting.defaultTimeBase);
     ui->cb_Timebase->setCurrentIndex(configSetting.defaultTimeBase);
+    currentTimebaseIndex = configSetting.defaultTimeBase;
 
     //绑定参数
     binderVoltage =  EnumMap::getVoltageBuilder(ui->cb_Voltage);
@@ -263,6 +267,11 @@ harmonic::harmonic(QWidget *parent)
 harmonic::~harmonic()
 {
     delete ui;
+}
+
+void harmonic::settingFinshed(){
+    loadSettings();
+    ui->cb_Timebase->setCurrentIndex(configSetting.defaultTimeBase);
 }
 
 //开始后台采集
@@ -541,6 +550,7 @@ void harmonic::on_pushButton_6_clicked()
         FileManager::deserializeFromBinary(fileName ,rawdata ,cunnentRange ,timebaseValue ,sampleInterval,cb_Timebase_index);
 
         ui->cb_Timebase->setCurrentIndex(cb_Timebase_index);
+        currentTimebaseIndex = cb_Timebase_index;
 
         binderVoltage->setCurrentEnumValue(cunnentRange);
         //ui->le_timebase->setText(QString::number(timebaseValue));
@@ -680,6 +690,7 @@ void harmonic::on_cb_Timebase_currentIndexChanged(int index)
             }else{
                 timeChart->changeX(currentTimebase);
             }
+            currentTimebaseIndex = index;
         }
     }
 }
@@ -765,5 +776,12 @@ void harmonic::on_checkBox_stateChanged(int arg1)
         segmentHandle->useTriggers(true);
     }
 
+}
+
+//打开系统设置
+void harmonic::on_pushButton_17_clicked()
+{
+    setWin->SetConfig(&configSetting,timeBaseList);
+    setWin->show();
 }
 

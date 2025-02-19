@@ -53,6 +53,29 @@ public:
         defaultBaseFrequency(_defaultBaseFrequency),
         segmentedRenderingChart(_segmentedRenderingChart)
     {}
+
+    QJsonObject toJson() const {
+        QJsonObject jsonObject;
+        jsonObject["realTimeWaveform"] = realTimeWaveform;
+        jsonObject["dataCacheCount"] = dataCacheCount;
+        jsonObject["defaultTimeBase"] = defaultTimeBase;
+        jsonObject["defaultCoupling"] = defaultCoupling;
+        jsonObject["defaultVoltage"] = defaultVoltage;
+        jsonObject["defaultChannel"] = defaultChannel;
+        jsonObject["defaultBaseFrequency"] = defaultBaseFrequency;
+        jsonObject["segmentedRenderingChart"] = segmentedRenderingChart;
+        jsonObject["autoOpenDevice"] = autoOpenDevice;
+        jsonObject["autoSaveRawData"] = autoSaveRawData;
+        jsonObject["autoSaveFolder"] = autoSaveFolder;
+        jsonObject["timeBaseValue"] = timeBaseValue;
+        jsonObject["sampleCount"] = sampleCount;
+        jsonObject["autoRenderFrequency"] = autoRenderFrequency;
+        jsonObject["autoCalculateHarmonicResult"] = autoCalculateHarmonicResult;
+        jsonObject["autoCalculateSingalFreq"] = autoCalculateSingalFreq;
+        jsonObject["harmonicCalculateCount"] = harmonicCalculateCount;
+        jsonObject["autoLoadDelay"] = autoLoadDelay;
+        return jsonObject;
+    }
 };
 
 class ConfigLoader{
@@ -105,6 +128,27 @@ public:
         setting->autoSaveFolder = obj["autoSaveFolder"].toString();
         // 创建 Config 对象并返回
         return *setting;
+    }
+
+    static void saveConfigSettingsToJson(const ConfigSetting& configSetting, const QString& filePath) {
+        // 将单个 ConfigSetting 转换为 QJsonObject
+        QJsonObject jsonObject = configSetting.toJson();
+
+        // 创建一个 QJsonDocument 并将 QJsonObject 转换为 JSON 格式
+        QJsonDocument doc(jsonObject);
+
+        QString difPath = QCoreApplication::applicationDirPath() + "/";
+
+        qDebug() << filePath;
+
+        // 打开文件并写入数据
+        QFile file(difPath + filePath);
+        if (file.open(QIODevice::WriteOnly)) {
+            file.write(doc.toJson());
+            file.close();
+        }else{
+            qDebug() << filePath << "Failed to open file";
+        }
     }
 };
 

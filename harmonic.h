@@ -12,6 +12,7 @@
 #include <autoexecutor.h>
 #include "configloader.h"
 #include <enummap.h>
+#include <settings.h>
 
 namespace Ui {
 class harmonic;
@@ -59,6 +60,8 @@ private slots:
 
     void on_checkBox_stateChanged(int arg1);
 
+    void on_pushButton_17_clicked();
+
 private:
     Ui::harmonic *ui;
     void onDataReady(const QVector<QPointF> &data);
@@ -90,6 +93,7 @@ private:
 
     bool isRunning;
     ConfigSetting configSetting;
+    int currentTimebaseIndex;
 
     void loadSettings();
 
@@ -98,6 +102,9 @@ private:
     EnumBinder<enPS2000ACoupling> *binderCoupling;
 
     PS2000A_RANGE cunnentRange;
+
+    Settings *setWin;
+    void settingFinshed();
 };
 
 #endif // HARMONIC_H

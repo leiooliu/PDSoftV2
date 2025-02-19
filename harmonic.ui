@@ -601,6 +601,13 @@
         </widget>
        </item>
        <item>
+        <widget class="QPushButton" name="pushButton_17">
+         <property name="text">
+          <string>系统设置</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Orientation::Vertical</enum>
