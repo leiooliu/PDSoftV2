@@ -6,7 +6,9 @@
 #include "QFileDialog.h"
 #include <fftw3.h> // 使用已有的FFTW库
 #include <chrono>
+#include <algorithm.h>
 
+//通过过零点来计算频率
 double harmonic::calculateFrequencyByZero(const QVector<double>& data, double samplingInterval)
 {
     samplingInterval *= 1e-9; // 纳秒转秒
@@ -53,11 +55,16 @@ double harmonic::calculateFrequencyByZero(const QVector<double>& data, double sa
 // - sampleCount: int，采样点数
 // - sampleInterval: double，采样间隔（单位 ns）
 // 返回值：double，计算得到的主频率（单位 Hz）
-double harmonic::calculateFrequency(const QVector<double>& data, double sampleInterval) {
+double harmonic::calculateFrequency(const QVector<double>& data, double sampleInterval,double offset) {
     sampleInterval *= 1e-9; // 纳秒转秒
     int N = data.size();
     if (data.isEmpty() || N <= 1 || sampleInterval <= 0) {
         return 0.0;
+    }
+
+    if(offset <= 0)
+    {
+        offset = 0.5;
     }
 
     // 分配内存
@@ -110,7 +117,7 @@ double harmonic::calculateFrequency(const QVector<double>& data, double sampleIn
                               out[peakIndex+1][1]*out[peakIndex+1][1]) * 2.0 / sumWindow;
 
         // 算频率偏移量
-        double delta = 0.5 * (magPrev - magNext) / (magPrev - 2*maxMagnitude + magNext);
+        double delta = offset * (magPrev - magNext) / (magPrev - 2*maxMagnitude + magNext);
         frequency = (peakIndex + delta) * Fs / N;
     }
 
@@ -272,6 +279,8 @@ harmonic::~harmonic()
 void harmonic::settingFinshed(){
     loadSettings();
     ui->cb_Timebase->setCurrentIndex(configSetting.defaultTimeBase);
+    ui->cb_Channel->setCurrentIndex(configSetting.defaultChannel);
+    ui->cb_Voltage->setCurrentIndex(configSetting.defaultVoltage);
 }
 
 //开始后台采集
@@ -328,7 +337,7 @@ void harmonic::onRawDataReady(const QVector<double> &rawdata,double timeInterval
     timeChart->run();
 
     if(configSetting.autoCalculateSingalFreq){
-        double ns = calculateFrequency(bufferedRawData,timeIntervalNanoseconds);
+        double ns = calculateFrequency(bufferedRawData,timeIntervalNanoseconds,ui->dsb_offset->value());
         //过0点
         //double nsZero = calculateFrequencyByZero(bufferedRawData ,timeIntervalNanoseconds);
 
@@ -573,7 +582,9 @@ void harmonic::on_pushButton_6_clicked()
 
             //double nsZero = calculateFrequencyByZero(bufferedRawData ,currentTimebase.interval);
             //recvLog("过零点信号频率：" + QString::number(nsZero));
-            double ns = calculateFrequency(bufferedRawData,sampleInterval);
+            double ns = calculateFrequency(bufferedRawData,sampleInterval,ui->dsb_offset->value());
+
+            //double ns = Algorithm::calculateFrequency(bufferedRawData ,sampleInterval);
             recvLog("信号频率："+QString::number(ns));
             ui->spinBox->setValue(ns);
 

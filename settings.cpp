@@ -6,6 +6,7 @@ Settings::Settings(QWidget *parent)
     , ui(new Ui::Settings)
 {
     ui->setupUi(this);
+    tableModel = new TimebaseModel();
 }
 
 void Settings::SetConfig(ConfigSetting *setting,QVector<TimeBase> timeBaseList){
@@ -19,17 +20,43 @@ void Settings::SetConfig(ConfigSetting *setting,QVector<TimeBase> timeBaseList){
     ui->autoCalculateHarmonicResult->setChecked(setting->autoCalculateHarmonicResult);
     ui->autoCalculateSingalFreq->setChecked(setting->autoCalculateSingalFreq);
 
-    binderVoltage =  EnumMap::getVoltageBuilder(ui->cb_voltage);
-    binderChannel = EnumMap::getChannelBuilder(ui->cb_channel);
-    binderCoupling = EnumMap::getCouplingBuilder(ui->cb_coupling);
+    if(ui->cb_coupling->count() > 0){
+        ui->cb_coupling->clear();
+    }
+
+    if(ui->cb_voltage->count() > 0){
+        ui->cb_voltage->clear();
+    }
+
+    if(ui->cb_channel->count() > 0){
+        ui->cb_channel->clear();
+    }
 
     if(ui->cb_timebase->count() > 0){
         ui->cb_timebase->clear();
     }
 
+    binderVoltage =  EnumMap::getVoltageBuilder(ui->cb_voltage);
+    binderChannel = EnumMap::getChannelBuilder(ui->cb_channel);
+    binderCoupling = EnumMap::getCouplingBuilder(ui->cb_coupling);
+
+    QVector<QVector<QVariant>> results;
+
     for(const TimeBase &tb : timeBaseList){
         ui->cb_timebase->addItem(tb.scope);
+
+        QString scope = tb.scope;
+        int timebasevalue = tb.timebasevalue;
+
+        results.append({
+           scope,
+           QString::number(timebasevalue)
+        });
     }
+
+    tableModel->setData(results);
+    ui->tableView->setModel(tableModel);
+    ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
     ui->cb_timebase->setCurrentIndex(setting->defaultTimeBase);
     ui->cb_voltage->setCurrentIndex(setting->defaultVoltage);

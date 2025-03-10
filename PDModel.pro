@@ -26,10 +26,12 @@ SOURCES += \
     settings.cpp \
     singalconvert.cpp \
     tablerender.cpp \
+    timebasemodel.cpp \
     zoomchartview.cpp
 
 HEADERS += \
     TimeBaseLoader.h \
+    algorithm.h \
     autoexecutor.h \
     configloader.h \
     customlineitem.h \
@@ -51,6 +53,7 @@ HEADERS += \
     settings.h \
     singalconvert.h \
     tablerender.h \
+    timebasemodel.h \
     tools.h \
     zoomchartview.h
 

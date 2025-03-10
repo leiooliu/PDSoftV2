@@ -6,6 +6,7 @@
 #include <TimeBaseLoader.h>
 #include <ps2000aApi.h>
 #include <enumbinder.h>
+#include <timebasemodel.h>
 namespace Ui {
 class Settings;
 }
@@ -28,6 +29,7 @@ private:
     EnumBinder<PS2000A_RANGE> *binderVoltage;
     EnumBinder<enPS2000AChannel> *binderChannel;
     EnumBinder<enPS2000ACoupling> *binderCoupling;
+    TimebaseModel *tableModel;
 
 signals:
     void setFinished();

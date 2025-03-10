@@ -85,7 +85,7 @@ private:
     void samplingRateLoad(double samplingRate);
     void recvLog(QString log);
     TimeBase currentTimebase;
-    double calculateFrequency(const QVector<double>& data, double sampleInterval);
+    double calculateFrequency(const QVector<double>& data, double sampleInterval,double offset);
     double calculateFrequencyByZero(const QVector<double>& data, double samplingInterval);
     //判断信号中是否存在谐波
     bool detectHarmonics(const QVector<double>& adcData, double threshold);

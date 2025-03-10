@@ -154,18 +154,18 @@ public:
         QJsonArray jsonArray = doc.array();
         for (const QJsonValue &value : jsonArray) {
             QJsonObject obj = value.toObject();
-            QString scope = obj["示波器"].toString();
-            int sampleCount = obj["样本数"].toInt();
-            QString unit = obj["单位"].toString();
-            int scale = obj["刻度"].toInt();
-            int maxScale = obj["最大刻度"].toInt();
-            bool conversion = obj["换算"].toInt();
-            double interval = obj["采样间隔"].toDouble();
-            QString intervalUnit = obj["采样间隔单位"].toString();
-            uint32_t timebasevalue = obj["时基值"].toInt();
-            QString frequencyUnit = obj["频域单位"].toString();
-            double frequencyScope = obj["频域范围"].toDouble();
-            int gridValue = obj["格子单位值"].toInt();
+            QString scope = obj["scope"].toString();
+            int sampleCount = obj["sampleCount"].toInt();
+            QString unit = obj["unit"].toString();
+            int scale = obj["scale"].toInt();
+            int maxScale = obj["maxScale"].toInt();
+            bool conversion = obj["conversion"].toInt();
+            double interval = obj["interval"].toDouble();
+            QString intervalUnit = obj["intervalUnit"].toString();
+            uint32_t timebasevalue = obj["timebasevalue"].toInt();
+            QString frequencyUnit = obj["frequencyUnit"].toString();
+            double frequencyScope = obj["frequencyScope"].toDouble();
+            int gridValue = obj["gridValue"].toInt();
             timeBaseList.append(TimeBase(
                 scope, sampleCount ,unit ,scale,
                 maxScale ,conversion ,interval ,intervalUnit,timebasevalue,frequencyUnit,frequencyScope,gridValue

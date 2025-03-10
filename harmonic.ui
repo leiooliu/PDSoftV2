@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1564</width>
-    <height>847</height>
+    <height>972</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -378,14 +378,8 @@
          <property name="alignment">
           <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
          </property>
-         <layout class="QGridLayout" name="gridLayout_9">
-          <property name="topMargin">
-           <number>6</number>
-          </property>
-          <property name="verticalSpacing">
-           <number>10</number>
-          </property>
-          <item row="0" column="0">
+         <layout class="QVBoxLayout" name="verticalLayout_5">
+          <item>
            <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,0,1">
             <item>
              <widget class="QLabel" name="label_5">
@@ -425,7 +419,31 @@
             </item>
            </layout>
           </item>
-          <item row="1" column="0">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_17" stretch="0,1">
+            <item>
+             <widget class="QLabel" name="label_17">
+              <property name="text">
+               <string>修正参数</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QDoubleSpinBox" name="dsb_offset">
+              <property name="decimals">
+               <number>3</number>
+              </property>
+              <property name="singleStep">
+               <double>0.001000000000000</double>
+              </property>
+              <property name="value">
+               <double>0.500000000000000</double>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
            <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="1,2,1">
             <item>
              <widget class="QLabel" name="label_7">
