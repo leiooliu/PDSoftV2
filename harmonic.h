@@ -4,6 +4,7 @@
 #include <QWidget>
 #include "SegmentHandle.h"  // 引入SegmentHandle类
 #include <TimeBaseLoader.h>
+#include "renderpolartchart.h"
 #include "rendertimechart.h"
 #include <harmonictablemodel.h>
 #include <fftanalyzer.h>
@@ -13,6 +14,8 @@
 #include "configloader.h"
 #include <enummap.h>
 #include <settings.h>
+#include <peakparam.h>
+#include <renderfrequencychart.h>
 
 namespace Ui {
 class harmonic;
@@ -41,38 +44,32 @@ private slots:
     void on_pushButton_13_clicked();
     void on_pushButton_14_clicked();
     void on_cb_Timebase_currentIndexChanged(int index);
-
     void on_cb_Voltage_currentIndexChanged(int index);
-
-    void on_pushButton_15_clicked();
-
-    void on_pushButton_16_clicked();
-
     void on_dsb_time_x_max_valueChanged(double arg1);
-
     void on_dsb_time_x_min_valueChanged(double arg1);
-
     void on_dsb_frequency_x_max_valueChanged(double arg1);
-
     void on_dsb_frequency_x_min_valueChanged(double arg1);
-
     void on_reloadConfig_btn_clicked();
-
     void on_checkBox_stateChanged(int arg1);
-
     void on_pushButton_17_clicked();
 
 private:
     Ui::harmonic *ui;
     void onDataReady(const QVector<QPointF> &data);
     void onRawDataReady(const QVector<double> &rawdata,double timeIntervalNanoseconds);
+
+    void onTestDataReady(const QVector<double> &rawdata,double timeIntervalNanoseconds);
+
     void updateProgress(int percentage);
     void renderTimeChartFinash(const QVector<QPointF> &data ,double timeMultiplier);
     void renderFrequencyChartFinash(const QVector<QPointF> &data);
     SegmentHandle *segmentHandle;  // 用于启动数据采集的线程
+    void onTestReady(double ns ,double minVolts ,double maxVolts);
+
     QVector<TimeBase> timeBaseList;
     RenderTimeChart *timeChart;
     RenderFrequencyChart *renderFrequncyChart;
+    RenderPolartChart *polartChart;
     QVector<QPointF> bufferedData;
     QVector<double> bufferedRawData;
     //绑定tableView
@@ -81,15 +78,15 @@ private:
     void harmonicRunReady(const QVector<QVector<QVariant>> result);
     FFTAnalyzer *analyzer;
     FFTHandle *fftHandle;
-    void fftReady(std::vector<double> frequencies,std::vector<double> magnitudes);
+    void fftReady(std::vector<double> frequencies,std::vector<double> magnitudes,std::vector<double> phases);
     void samplingRateLoad(double samplingRate);
     void recvLog(QString log);
     TimeBase currentTimebase;
-    double calculateFrequency(const QVector<double>& data, double sampleInterval,double offset);
-    double calculateFrequencyByZero(const QVector<double>& data, double samplingInterval);
-    //判断信号中是否存在谐波
-    bool detectHarmonics(const QVector<double>& adcData, double threshold);
+
+
     double _timeIntervalNanoseconds;
+    PeakParam peakParam;
+
 
     bool isRunning;
     ConfigSetting configSetting;

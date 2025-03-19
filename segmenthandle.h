@@ -21,6 +21,8 @@ public:
     bool open();
     bool close();
 
+    void loadTestData();
+
     ~SegmentHandle();
     void clearData();
     void loadData();
@@ -38,12 +40,19 @@ public:
 signals:
     // 进度更新信号
     void progressUpdated(int percentage);
+
     // 数据准备完成信号
     void dataReady(const QVector<QPointF>& data);
+
     // 原始数据准备完成信号
     void rawDataReady(const QVector<double>& data,double timeIntervalNanoseconds);
-    //
+
+    //测试数据采集完成
+    void testDataReady(const QVector<double>& data,double timeIntervalNanoseconds);
+
+    // 发送日志输出
     void sendLog(QString log);
+
     // 线程结束信号
     void finished();
 

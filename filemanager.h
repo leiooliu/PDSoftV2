@@ -47,6 +47,15 @@ public:
                                   PS2000A_RANGE range, int timeBase,
                                   double sampleInterval ,int divTagIndex);
 
+    static bool serializeToBinary(const QString &fileName, const QVector<double> &data,
+                                  PS2000A_RANGE range, int timeBase,
+                                  double sampleInterval ,int divTagIndex ,
+                                  double up_volts_threshold ,double down_volts_threshold ,bool isShow);
+    static bool deserializeFromBinary(const QString &fileName, QVector<double> &data,
+                                      PS2000A_RANGE &range, int &timeBase,
+                                      double &sampleInterval ,int &divTagIndex,
+                                      double &up_volts_threshold ,double &down_volts_threshold ,bool &isShow);
+
 private:
     static void showError(const QString &message);
 };

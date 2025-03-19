@@ -115,12 +115,16 @@ void FFTHandle::calculate(){
     // 计算频率和幅值
     std::vector<double> frequencies(output_length);
     std::vector<double> magnitudes(output_length);
+    //相位数据容器
+    std::vector<double> phases;
 
     for (int i = 0; i < output_length; ++i) {
 
         double real = fft_out[i][0];
         double imag = fft_out[i][1];
         double mag = std::sqrt(real * real + imag * imag) / N;
+
+
 
         //单边普新政（直流和Nyquist分量不 * 2）
         if(i>0 && i != output_length - 1){
@@ -135,6 +139,12 @@ void FFTHandle::calculate(){
 
         magnitudes[i] = amplitude_dBu;
         frequencies[i] = i * samplingRate / N;
+
+        //获得相位数据
+        double phase = atan2(imag,real);
+
+        phases.push_back(phase);
+
         // 更新 FFT 数据计算进度（0% - 100%）
         if (i % 1000 == 0 || i == N / 2 - 1) {
             int progress = static_cast<int>((i / static_cast<float>(N / 2)) * 100); // 更新到100%
@@ -161,7 +171,7 @@ void FFTHandle::calculate(){
     // }
 
     emit porgressUpdated(100);
-    emit fftReady(frequencies ,magnitudes);
+    emit fftReady(frequencies ,magnitudes,phases);
 }
 void FFTHandle::calculateWitRawData(){
     int N = rawData->size();
@@ -215,6 +225,8 @@ void FFTHandle::calculateWitRawData(){
 
     std::vector<double> frequencies;
     std::vector<double> magnitudes;
+    //相位数据容器
+    std::vector<double> phases;
 
     auto start = std::chrono::high_resolution_clock::now();
     // 只计算20MHz以内的数据
@@ -230,8 +242,13 @@ void FFTHandle::calculateWitRawData(){
     for (int i = 0; i <= maxIndex && i < N / 2; ++i) {
         double frequency = i * samplingRate / N;
         double magnitude = sqrt(fft_out[i][0] * fft_out[i][0] + fft_out[i][1] * fft_out[i][1]) / N;
+
+        //获得相位数据
+        double phase = atan2(fft_out[i][1],fft_out[i][0]);
+
         frequencies.push_back(frequency);
         magnitudes.push_back(magnitude);
+        phases.push_back(phase);
     }
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -244,7 +261,7 @@ void FFTHandle::calculateWitRawData(){
     fftw_free(fft_in);
     fftw_free(fft_out);
 
-    emit fftReady(frequencies, magnitudes);
+    emit fftReady(frequencies, magnitudes, phases);
 }
 
 void FFTHandle::run(){

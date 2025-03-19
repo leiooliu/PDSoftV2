@@ -3,9 +3,86 @@
 
 #include <QVector>
 #include <fftw3.h>
+#include <TimeBaseLoader.h>
+#include <ps2000aApi.h>
+#include <tools.h>
 
 class Algorithm{
 public :
+    static double calculateFrequency(const QVector<double>& data, double sampleInterval,double offset) {
+        sampleInterval *= 1e-9; // 纳秒转秒
+        int N = data.size();
+        if (data.isEmpty() || N <= 1 || sampleInterval <= 0) {
+            return 0.0;
+        }
+
+        if(offset <= 0)
+        {
+            offset = 0.5;
+        }
+
+        // 分配内存
+        int outSize = N/2 + 1;
+        double* in = fftw_alloc_real(N);
+        fftw_complex* out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * outSize);
+
+        // 使用汉宁窗，计算窗函数总和
+        double sumWindow = 0.0;
+        for (int i = 0; i < N; ++i) {
+            double window = 0.5 * (1 - cos(2 * M_PI * i / (N-1)));
+
+            //对瞬态信号改用平顶窗口
+            // double window = 0.21557895
+            //                 - 0.41663158 * cos(2*M_PI*i/(N-1))
+            //                 + 0.277263158 * cos(4*M_PI*i/(N-1))
+            //                 - 0.083578947 * cos(6*M_PI*i/(N-1))
+            //                 + 0.006947368 * cos(8*M_PI*i/(N-1));
+
+            in[i] = data[i] * window;
+            sumWindow += window;
+        }
+
+        // 创建并执行FFT计划
+        fftw_plan plan = fftw_plan_dft_r2c_1d(N, in, out, FFTW_ESTIMATE);
+        fftw_execute(plan);
+
+        // 跳直流，找最大幅值
+        double maxMagnitude = 0.0;
+        int peakIndex = 0;
+        for (int i = 1; i < outSize; ++i) { // 从1开始跳直流
+            // 计算幅值并补偿（汉宁窗补偿）
+            double magnitude = sqrt(out[i][0]*out[i][0] + out[i][1]*out[i][1]) * 2.0 / sumWindow;
+
+            if (magnitude > maxMagnitude) {
+                maxMagnitude = magnitude;
+                peakIndex = i;
+            }
+        }
+
+        // 抛物线插值优化
+        double Fs = 1.0 / sampleInterval;
+        double frequency = peakIndex * Fs / N;
+
+        if (peakIndex > 0 && peakIndex < outSize-1) {
+            // 获取相邻频点幅值（需重新计算补偿）
+            double magPrev = sqrt(out[peakIndex-1][0]*out[peakIndex-1][0] +
+                                  out[peakIndex-1][1]*out[peakIndex-1][1]) * 2.0 / sumWindow;
+            double magNext = sqrt(out[peakIndex+1][0]*out[peakIndex+1][0] +
+                                  out[peakIndex+1][1]*out[peakIndex+1][1]) * 2.0 / sumWindow;
+
+            // 算频率偏移量
+            double delta = offset * (magPrev - magNext) / (magPrev - 2*maxMagnitude + magNext);
+            frequency = (peakIndex + delta) * Fs / N;
+        }
+
+        // 释放资源
+        fftw_destroy_plan(plan);
+        fftw_free(in);
+        fftw_free(out);
+
+        return frequency;
+    }
+
     //三次差值函数
     static double cubicInterpolation(const QVector<double>& x,
                                      const QVector<double>& y,
@@ -33,7 +110,7 @@ public :
     }
 
     //计算频率
-    static double calculateFrequency(const QVector<double>& data, double sampleInterval) {
+    static double calculateFrequencyByCubicInterpolation(const QVector<double>& data, double sampleInterval) {
         sampleInterval *= 1e-9; // 纳秒转秒
         int N = data.size();
         if (data.isEmpty() || N <= 1 || sampleInterval <= 0) {
@@ -102,6 +179,67 @@ public :
 
         return frequency;
     }
+
+
+    //计算时域数据，并得到当前信号的最大和最小幅值
+    static void calculateTimeData(const QVector<double> sourceData ,
+                                    PS2000A_RANGE range,
+                                    TimeBase timebase ,
+                                    QVector<QPointF> &_datas ,
+                                    double &minVoltsValue ,
+                                    double &maxVoltsValue){
+        QString unit = timebase.unit;
+        //int unitValue = timebase.gridValue; // 这个要拆解示波器的数字
+        double timeIntervalNanoseconds = timebase.interval;
+        double timeMultiplier;
+
+        // 清空旧数据，防止重复
+        _datas.clear();
+
+        // 定义时间倍率
+        timeMultiplier = 1.0;
+        if (unit == "ns") {
+            timeMultiplier = 1e-9;  // 纳秒
+            if (timebase.conversion) {
+                timeMultiplier = 1e-6;  // 如果转换标志为 true，将单位调整为微秒
+            }
+        } else if (unit == "us") {
+            timeMultiplier = 1e-6;  // 微秒
+            if (timebase.conversion) {
+                timeMultiplier = 1e-3;  // 如果转换标志为 true，将单位调整为毫秒
+            }
+        } else if (unit == "ms") {
+            timeMultiplier = 1e-3;  // 毫秒
+            if (timebase.conversion) {
+                timeMultiplier = 1.0;  // 如果转换标志为 true，将单位调整为秒
+            }
+        } else if (unit == "s") {
+            timeMultiplier = 1.0;   // 秒
+        } else {
+
+        }
+
+        // 将采样间隔从纳秒转换为秒
+        double interval = timeIntervalNanoseconds * 1e-9; // 单位转换为秒
+
+        // 提前分配内存
+        _datas.reserve(sourceData.size());
+
+        maxVoltsValue = std::numeric_limits<double>::lowest(); // 初始值设为最小
+        minVoltsValue = std::numeric_limits<double>::max();    // 初始值设为最大
+
+        for (int i = 0; i < sourceData.size(); ++i) {
+            double time = i * interval / timeMultiplier;
+            double volts = PDTools::adcToVolts(sourceData[i], range) * 1000;
+            QPointF point = QPointF(time, volts);
+            _datas.append(point);
+
+            // 实时更新最大值和最小值
+            if (volts > maxVoltsValue) maxVoltsValue = volts;
+            if (volts < minVoltsValue) minVoltsValue = volts;
+        }
+    }
+
 };
 
 #endif // ALGORITHM_H

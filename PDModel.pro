@@ -19,12 +19,15 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     pdchart.cpp \
+    pdpolartchart.cpp \
     picoscopehandler.cpp \
     renderfrequencychart.cpp \
+    renderpolartchart.cpp \
     rendertimechart.cpp \
     segmenthandle.cpp \
     settings.cpp \
     singalconvert.cpp \
+    singletest.cpp \
     tablerender.cpp \
     timebasemodel.cpp \
     zoomchartview.cpp
@@ -45,13 +48,17 @@ HEADERS += \
     mainwindow.h \
     pdchart.h \
     pdchartview.h \
+    pdpolartchart.h \
+    peakparam.h \
     picoparam.h \
     picoscopehandler.h \
     renderfrequencychart.h \
+    renderpolartchart.h \
     rendertimechart.h \
     segmenthandle.h \
     settings.h \
     singalconvert.h \
+    singletest.h \
     tablerender.h \
     timebasemodel.h \
     tools.h \
@@ -60,7 +67,8 @@ HEADERS += \
 FORMS += \
     harmonic.ui \
     mainwindow.ui \
-    settings.ui
+    settings.ui \
+    singletest.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -80,6 +88,9 @@ DEPENDPATH += $$PWD/fftw-3.3.5-dll64
 
 
 win32: LIBS += -L$$PWD/fftw-3.3.5-dll64/ -llibfftw3-3
+
+RESOURCES += \
+    resources.qrc
 
 
 

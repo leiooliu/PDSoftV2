@@ -8,6 +8,8 @@ int main(int argc, char *argv[])
     // MainWindow w;
     // w.show();
 
+    a.setWindowIcon(QIcon(":/icon/icon.png"));
+
     harmonic harmonicWin;
     harmonicWin.show();
 

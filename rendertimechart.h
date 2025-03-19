@@ -7,13 +7,15 @@
 #include "ps2000aApi.h"
 #include <tools.h>
 #include <TimeBaseLoader.h>
+#include <peakparam.h>
+
 class RenderTimeChart : public QThread
 {
     Q_OBJECT
 public:
     explicit RenderTimeChart(PDChart *pdChart, QObject *parent = nullptr);
     void render(const QVector<QPointF> &datas,QString unit);
-    void render(const QVector<double> sourceData , PS2000A_RANGE range, TimeBase timebase);
+    void render(const QVector<double> sourceData , PS2000A_RANGE range, TimeBase timebase,PeakParam peakParam);
     void changeY(PS2000A_RANGE range);
     void changeX(TimeBase timebase);
     void run() override;
@@ -21,6 +23,8 @@ public:
 
     void setXRange(double min ,double max);
     void setYRange(double min ,double max);
+
+    void setPeakTiggerData(const QVector<QPointF> &datas);
 
 signals:
     void progressUpdated(int percentage);
@@ -52,6 +56,8 @@ private:
     double _yMin = -5000;
     double _yMax = 5000;
     double _yIntervals = 1.0;
+
+    PeakParam *peakParam;
 
 };
 #endif // RENDERTIMECHART_H

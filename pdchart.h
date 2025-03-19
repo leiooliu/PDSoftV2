@@ -28,6 +28,7 @@ public:
     void setMargins(int left, int top, int right, int bottom);
     void setYAxisScale(qreal min, qreal max, qreal interval);
     void setXAxisScale(qreal min, qreal max, qreal interval);
+    void setPeakTiggerData(const QVector<QPointF> &peakTiggerData,double breakThreshold);
     void clearData();
     QChart *chart;
 signals:
@@ -43,6 +44,9 @@ private:
     PDChartView *chartView;
 
     QLineSeries *series;
+
+    QVector<QLineSeries> *seriesList;
+
     QValueAxis *axisX;
     QValueAxis *axisY;
     QGraphicsTextItem *m_tooltip;

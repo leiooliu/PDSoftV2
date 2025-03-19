@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1564</width>
-    <height>972</height>
+    <width>1592</width>
+    <height>1049</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -59,6 +59,9 @@
           </property>
           <property name="topMargin">
            <number>9</number>
+          </property>
+          <property name="bottomMargin">
+           <number>5</number>
           </property>
           <property name="verticalSpacing">
            <number>10</number>
@@ -122,6 +125,9 @@
           <property name="topMargin">
            <number>9</number>
           </property>
+          <property name="bottomMargin">
+           <number>5</number>
+          </property>
           <property name="verticalSpacing">
            <number>10</number>
           </property>
@@ -182,62 +188,9 @@
           <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
          </property>
          <layout class="QGridLayout" name="gridLayout_6">
-          <item row="0" column="0">
-           <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="1,3">
-            <item>
-             <widget class="QLabel" name="label_9">
-              <property name="text">
-               <string>Display</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QComboBox" name="cb_Timebase"/>
-            </item>
-           </layout>
-          </item>
-          <item row="1" column="0">
-           <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="1,3">
-            <item>
-             <widget class="QLabel" name="label_10">
-              <property name="text">
-               <string>Voltage</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QComboBox" name="cb_Voltage"/>
-            </item>
-           </layout>
-          </item>
-          <item row="2" column="0">
-           <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="1,3">
-            <item>
-             <widget class="QLabel" name="label_11">
-              <property name="text">
-               <string>Coupling</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QComboBox" name="cb_Couping"/>
-            </item>
-           </layout>
-          </item>
-          <item row="3" column="0">
-           <layout class="QHBoxLayout" name="horizontalLayout_7" stretch="1,3">
-            <item>
-             <widget class="QLabel" name="label_12">
-              <property name="text">
-               <string>Channel</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QComboBox" name="cb_Channel"/>
-            </item>
-           </layout>
-          </item>
+          <property name="bottomMargin">
+           <number>5</number>
+          </property>
           <item row="4" column="0">
            <layout class="QHBoxLayout" name="horizontalLayout_8" stretch="1,0">
             <item>
@@ -265,12 +218,26 @@
             </item>
            </layout>
           </item>
+          <item row="0" column="0">
+           <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="1,3">
+            <item>
+             <widget class="QLabel" name="label_9">
+              <property name="text">
+               <string>Display</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="cb_Timebase"/>
+            </item>
+           </layout>
+          </item>
           <item row="5" column="0">
-           <layout class="QHBoxLayout" name="horizontalLayout_9" stretch="1,3">
+           <layout class="QHBoxLayout" name="horizontalLayout_9" stretch="1,2">
             <item>
              <widget class="QLabel" name="label_2">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -295,12 +262,54 @@
             </item>
            </layout>
           </item>
+          <item row="2" column="0">
+           <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="1,3">
+            <item>
+             <widget class="QLabel" name="label_11">
+              <property name="text">
+               <string>Coupling</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="cb_Couping"/>
+            </item>
+           </layout>
+          </item>
+          <item row="1" column="0">
+           <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="1,3">
+            <item>
+             <widget class="QLabel" name="label_10">
+              <property name="text">
+               <string>Voltage</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="cb_Voltage"/>
+            </item>
+           </layout>
+          </item>
+          <item row="3" column="0">
+           <layout class="QHBoxLayout" name="horizontalLayout_7" stretch="1,3">
+            <item>
+             <widget class="QLabel" name="label_12">
+              <property name="text">
+               <string>Channel</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="cb_Channel"/>
+            </item>
+           </layout>
+          </item>
           <item row="6" column="0">
-           <layout class="QHBoxLayout" name="horizontalLayout_10">
+           <layout class="QHBoxLayout" name="horizontalLayout_10" stretch="1,2">
             <item>
              <widget class="QLabel" name="label_3">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -328,8 +337,20 @@
             </item>
            </layout>
           </item>
-          <item row="7" column="0">
-           <layout class="QHBoxLayout" name="horizontalLayout_11" stretch="1,3">
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_8">
+         <property name="title">
+          <string>触发器</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_6">
+          <property name="bottomMargin">
+           <number>5</number>
+          </property>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_11" stretch="1,2">
             <item>
              <widget class="QLabel" name="label_4">
               <property name="sizePolicy">
@@ -342,10 +363,10 @@
                <enum>Qt::LayoutDirection::LeftToRight</enum>
               </property>
               <property name="text">
-               <string>触发器</string>
+               <string>采样触发器</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignmentFlag::AlignCenter</set>
+               <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
               </property>
              </widget>
             </item>
@@ -356,6 +377,84 @@
               </property>
               <property name="checked">
                <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_20" stretch="1,2">
+            <item>
+             <widget class="QLabel" name="label_20">
+              <property name="text">
+               <string>启用幅值阈值触发</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="cb_userThresholdTigger">
+              <property name="text">
+               <string>是</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_19" stretch="1,2">
+            <item>
+             <widget class="QLabel" name="label_19">
+              <property name="text">
+               <string>上沿幅值阈值</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QDoubleSpinBox" name="dsb_upLimit">
+              <property name="decimals">
+               <number>4</number>
+              </property>
+              <property name="maximum">
+               <double>20000.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_18" stretch="1,2">
+            <item>
+             <widget class="QLabel" name="label_18">
+              <property name="text">
+               <string>下沿幅值阈值</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QDoubleSpinBox" name="dsb_downLimit">
+              <property name="decimals">
+               <number>4</number>
+              </property>
+              <property name="maximum">
+               <double>20000.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_21" stretch="1,2">
+            <item>
+             <widget class="QLabel" name="label_21">
+              <property name="text">
+               <string>图表显示</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="checkBox_3">
+              <property name="text">
+               <string>是</string>
               </property>
              </widget>
             </item>
@@ -379,6 +478,9 @@
           <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_5">
+          <property name="bottomMargin">
+           <number>5</number>
+          </property>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,0,1">
             <item>
@@ -498,7 +600,28 @@
           <string>筛选</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_11">
-          <item row="4" column="0">
+          <property name="bottomMargin">
+           <number>5</number>
+          </property>
+          <item row="1" column="0">
+           <layout class="QHBoxLayout" name="horizontalLayout_13" stretch="1,3">
+            <item>
+             <widget class="QLabel" name="label_13">
+              <property name="text">
+               <string>Time X Min</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QDoubleSpinBox" name="dsb_time_x_min">
+              <property name="maximum">
+               <double>5000.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="3" column="0">
            <layout class="QHBoxLayout" name="horizontalLayout_15" stretch="1,3">
             <item>
              <widget class="QLabel" name="label_15">
@@ -525,14 +648,28 @@
             </item>
            </layout>
           </item>
-          <item row="3" column="0">
-           <widget class="QPushButton" name="pushButton_15">
-            <property name="text">
-             <string>设置</string>
-            </property>
-           </widget>
+          <item row="2" column="0">
+           <layout class="QHBoxLayout" name="horizontalLayout_14" stretch="1,3">
+            <item>
+             <widget class="QLabel" name="label_14">
+              <property name="text">
+               <string>Time X Max</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QDoubleSpinBox" name="dsb_time_x_max">
+              <property name="maximum">
+               <double>5000.000000000000000</double>
+              </property>
+              <property name="value">
+               <double>10.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
-          <item row="5" column="0">
+          <item row="4" column="0">
            <layout class="QHBoxLayout" name="horizontalLayout_16" stretch="1,3">
             <item>
              <widget class="QLabel" name="label_16">
@@ -562,52 +699,6 @@
             </item>
            </layout>
           </item>
-          <item row="2" column="0">
-           <layout class="QHBoxLayout" name="horizontalLayout_14" stretch="1,3">
-            <item>
-             <widget class="QLabel" name="label_14">
-              <property name="text">
-               <string>Time X Max</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QDoubleSpinBox" name="dsb_time_x_max">
-              <property name="maximum">
-               <double>5000.000000000000000</double>
-              </property>
-              <property name="value">
-               <double>10.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item row="1" column="0">
-           <layout class="QHBoxLayout" name="horizontalLayout_13" stretch="1,3">
-            <item>
-             <widget class="QLabel" name="label_13">
-              <property name="text">
-               <string>Time X Min</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QDoubleSpinBox" name="dsb_time_x_min">
-              <property name="maximum">
-               <double>5000.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item row="6" column="0">
-           <widget class="QPushButton" name="pushButton_16">
-            <property name="text">
-             <string>设置</string>
-            </property>
-           </widget>
-          </item>
          </layout>
         </widget>
        </item>
@@ -632,8 +723,8 @@
          </property>
          <property name="sizeHint" stdset="0">
           <size>
-           <width>20</width>
-           <height>40</height>
+           <width>0</width>
+           <height>0</height>
           </size>
          </property>
         </spacer>
@@ -664,6 +755,16 @@
           <layout class="QGridLayout" name="gridLayout_2">
            <item row="0" column="0">
             <widget class="PDChart" name="fChart" native="true"/>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="tab_3">
+          <attribute name="title">
+           <string>Phase Diagram</string>
+          </attribute>
+          <layout class="QGridLayout" name="gridLayout_9">
+           <item row="0" column="0">
+            <widget class="PDPolartChart" name="polartChart" native="true"/>
            </item>
           </layout>
          </widget>
@@ -777,6 +878,12 @@
    <class>PDChart</class>
    <extends>QWidget</extends>
    <header location="global">pdchart.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PDPolartChart</class>
+   <extends>QWidget</extends>
+   <header location="global">pdpolartchart.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

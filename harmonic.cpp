@@ -7,181 +7,7 @@
 #include <fftw3.h> // 使用已有的FFTW库
 #include <chrono>
 #include <algorithm.h>
-
-//通过过零点来计算频率
-double harmonic::calculateFrequencyByZero(const QVector<double>& data, double samplingInterval)
-{
-    samplingInterval *= 1e-9; // 纳秒转秒
-    QVector<int> zeroCrossings; // 用于存储过零点的索引
-
-    // 遍历信号数据，找到过零点
-    for (int i = 1; i < data.size(); ++i) {
-        if ((data[i-1] > 0 && data[i] <= 0) || (data[i-1] < 0 && data[i] >= 0)) {
-            // 检测到过零点（从正到负，或从负到正）
-            zeroCrossings.append(i);
-        }
-
-        // 如果已经找到三个过零点，则停止查找
-        if (zeroCrossings.size() >= 3) {
-            break;
-        }
-    }
-
-    // 如果没有找到三个过零点，返回0
-    if (zeroCrossings.size() < 3) {
-        recvLog("没有足够的过零点。");
-        return 0.0;
-    }
-
-    // 计算前三个过零点之间的周期，并计算频率
-    double totalPeriod = 0.0;
-    for (int i = 0; i < 2; ++i) {
-        int deltaN = zeroCrossings[i+1] - zeroCrossings[i];
-        double period = deltaN * samplingInterval;  // 计算周期
-        totalPeriod += period;
-    }
-
-    // 计算平均周期
-    double averagePeriod = totalPeriod / 2; // 取两段周期的平均值
-    double frequency = 1.0 / averagePeriod;  // 频率是周期的倒数
-
-    return frequency;
-}
-
-// 函数：计算频率
-// 参数：
-// - data: QVector<double>，存储原始的ADC数据
-// - sample_rate: double，采样率（单位 Hz）
-// - sampleCount: int，采样点数
-// - sampleInterval: double，采样间隔（单位 ns）
-// 返回值：double，计算得到的主频率（单位 Hz）
-double harmonic::calculateFrequency(const QVector<double>& data, double sampleInterval,double offset) {
-    sampleInterval *= 1e-9; // 纳秒转秒
-    int N = data.size();
-    if (data.isEmpty() || N <= 1 || sampleInterval <= 0) {
-        return 0.0;
-    }
-
-    if(offset <= 0)
-    {
-        offset = 0.5;
-    }
-
-    // 分配内存
-    int outSize = N/2 + 1;
-    double* in = fftw_alloc_real(N);
-    fftw_complex* out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * outSize);
-
-    // 使用汉宁窗，计算窗函数总和
-    double sumWindow = 0.0;
-    for (int i = 0; i < N; ++i) {
-        double window = 0.5 * (1 - cos(2 * M_PI * i / (N-1)));
-
-        //对瞬态信号改用平顶窗口
-        // double window = 0.21557895
-        //                 - 0.41663158 * cos(2*M_PI*i/(N-1))
-        //                 + 0.277263158 * cos(4*M_PI*i/(N-1))
-        //                 - 0.083578947 * cos(6*M_PI*i/(N-1))
-        //                 + 0.006947368 * cos(8*M_PI*i/(N-1));
-
-        in[i] = data[i] * window;
-        sumWindow += window;
-    }
-
-    // 创建并执行FFT计划
-    fftw_plan plan = fftw_plan_dft_r2c_1d(N, in, out, FFTW_ESTIMATE);
-    fftw_execute(plan);
-
-    // 跳直流，找最大幅值
-    double maxMagnitude = 0.0;
-    int peakIndex = 0;
-    for (int i = 1; i < outSize; ++i) { // 从1开始跳直流
-        // 计算幅值并补偿（汉宁窗补偿）
-        double magnitude = sqrt(out[i][0]*out[i][0] + out[i][1]*out[i][1]) * 2.0 / sumWindow;
-
-        if (magnitude > maxMagnitude) {
-            maxMagnitude = magnitude;
-            peakIndex = i;
-        }
-    }
-
-    // 抛物线插值优化
-    double Fs = 1.0 / sampleInterval;
-    double frequency = peakIndex * Fs / N;
-
-    if (peakIndex > 0 && peakIndex < outSize-1) {
-        // 获取相邻频点幅值（需重新计算补偿）
-        double magPrev = sqrt(out[peakIndex-1][0]*out[peakIndex-1][0] +
-                              out[peakIndex-1][1]*out[peakIndex-1][1]) * 2.0 / sumWindow;
-        double magNext = sqrt(out[peakIndex+1][0]*out[peakIndex+1][0] +
-                              out[peakIndex+1][1]*out[peakIndex+1][1]) * 2.0 / sumWindow;
-
-        // 算频率偏移量
-        double delta = offset * (magPrev - magNext) / (magPrev - 2*maxMagnitude + magNext);
-        frequency = (peakIndex + delta) * Fs / N;
-    }
-
-    // 释放资源
-    fftw_destroy_plan(plan);
-    fftw_free(in);
-    fftw_free(out);
-
-    return frequency;
-}
-//判断信号中是否存在谐波
-bool harmonic::detectHarmonics(const QVector<double>& adcData, double threshold) {
-    int n = adcData.size();
-    if (n == 0) return false;
-
-    // 创建FFT输入输出数据
-    fftw_complex* in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * n);
-    fftw_complex* out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * n);
-
-    // 将QVector中的数据复制到FFT输入
-    for (int i = 0; i < n; ++i) {
-        in[i][0] = adcData[i];  // 实部
-        in[i][1] = 0.0;  // 虚部
-    }
-
-    // 创建FFT计划
-    fftw_plan p = fftw_plan_dft_1d(n, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
-
-    // 执行FFT
-    fftw_execute(p);
-
-    // 分析频域数据
-    double maxMagnitude = 0.0;  // 记录最大幅值
-    double averageMagnitude = 0.0; // 记录平均幅值
-    int harmonicDetected = false;
-
-    for (int i = 1; i < n / 2; ++i) {
-        double real = out[i][0];
-        double imag = out[i][1];
-        double magnitude = std::sqrt(real * real + imag * imag) / n;
-
-        maxMagnitude = std::max(maxMagnitude, magnitude);
-        averageMagnitude += magnitude;
-
-        // 检测基频和谐波成分
-        if (magnitude > threshold) {
-            recvLog("Potential harmonic detected at frequency index: "+QString::number(i)+"  with magnitude: "+QString::number(magnitude));
-            harmonicDetected = true;
-        }
-    }
-
-    // 计算平均幅值
-    //averageMagnitude /= (n / 2);
-
-    // 输出调试信息
-    //recvLog("Max Magnitude: " + QString::number(maxMagnitude) + ", Average Magnitude: " + QString::number(averageMagnitude));
-
-    // 清理FFT资源
-    fftw_free(in);
-    fftw_free(out);
-    fftw_destroy_plan(p);
-
-    return harmonicDetected;
-}
+#include <singletest.h>
 
 //加载配置项
 void harmonic::loadSettings(){
@@ -199,7 +25,6 @@ void harmonic::loadSettings(){
     for(const TimeBase &tb : timeBaseList){
         ui->cb_Timebase->addItem(tb.scope);
     }
-
 }
 
 harmonic::harmonic(QWidget *parent)
@@ -208,12 +33,16 @@ harmonic::harmonic(QWidget *parent)
 {
     //UI项先加载
     ui->setupUi(this);
+
     ui->pushButton_13->setEnabled(false);
     ui->pushButton_14->setEnabled(false);
     ui->pushButton->setEnabled(false);
 
     //加载配置项
     loadSettings();
+
+    peakParam = PeakParam(ui->dsb_upLimit->value() ,ui->dsb_downLimit->value() ,
+                                      ui->cb_userThresholdTigger->checkState());
 
     isRunning = false;
 
@@ -227,6 +56,8 @@ harmonic::harmonic(QWidget *parent)
     connect(renderFrequncyChart, &RenderFrequencyChart::sendLog ,this ,&harmonic::recvLog);
     // 连接信号和槽
     connect(renderFrequncyChart, &RenderFrequencyChart::renderFinished, this,  &harmonic::renderFrequencyChartFinash);
+
+    polartChart = new RenderPolartChart(ui->polartChart);
 
     //绑定tableView
     tableModel = new HarmonicTableModel();
@@ -249,6 +80,7 @@ harmonic::harmonic(QWidget *parent)
     connect(segmentHandle, &SegmentHandle::progressUpdated, this, &harmonic::updateProgress);
     //connect(segmentHandle, &SegmentHandle::finished, segmentHandle, &QObject::deleteLater);  // 清理资源
     connect(segmentHandle, &SegmentHandle::rawDataReady, this, &harmonic::onRawDataReady);
+    connect(segmentHandle, &SegmentHandle::testDataReady, this, &harmonic::onTestDataReady);
     connect(segmentHandle, &SegmentHandle::sendLog, this, &harmonic::recvLog);
 
     setWin = new Settings;
@@ -319,6 +151,28 @@ void harmonic::updateProgress(int percentage)
     ui->pBar->setValue(percentage);  // 更新进度条
 }
 
+void harmonic::onTestDataReady(const QVector<double> &rawdata,double timeIntervalNanoseconds){
+    recvLog("开启采样检测 ... ... ");
+    QVector<QPointF> testData;
+    double minVolts;
+    double maxVolts;
+    Algorithm::calculateTimeData(rawdata ,cunnentRange ,currentTimebase ,testData ,minVolts ,maxVolts);
+    double ns = Algorithm::calculateFrequency(rawdata,timeIntervalNanoseconds,ui->dsb_offset->value());
+    singletest *s = new singletest();
+    recvLog("预设值 ... ...");
+    s->setData(ns ,minVolts ,maxVolts);
+    s->show();
+
+    connect(s, &singletest::setReady, this, &harmonic::onTestReady);
+}
+
+void harmonic::onTestReady(double ns ,double minVolts ,double maxVolts){
+    ui->dsb_downLimit->setValue(std::abs(minVolts));
+    ui->dsb_upLimit->setValue(std::abs(maxVolts));
+    ui->spinBox->setValue(ns);
+    ui->cb_userThresholdTigger->setChecked(true);
+}
+
 void harmonic::onRawDataReady(const QVector<double> &rawdata,double timeIntervalNanoseconds){
     recvLog("采样时间间隔：" + QString::number(timeIntervalNanoseconds) + " ns");
 
@@ -332,12 +186,15 @@ void harmonic::onRawDataReady(const QVector<double> &rawdata,double timeInterval
     alreadyProcessed = true;
     bufferedRawData = rawdata;
 
+    peakParam.up_volts_threshold = ui->dsb_upLimit->value();
+    peakParam.down_volts_threshold = ui->dsb_downLimit->value();
+    peakParam.isShow = ui->cb_userThresholdTigger->checkState();
 
-    timeChart->render(rawdata,cunnentRange,currentTimebase);
+    timeChart->render(rawdata,cunnentRange,currentTimebase,peakParam);
     timeChart->run();
 
     if(configSetting.autoCalculateSingalFreq){
-        double ns = calculateFrequency(bufferedRawData,timeIntervalNanoseconds,ui->dsb_offset->value());
+        double ns = Algorithm::calculateFrequency(bufferedRawData,timeIntervalNanoseconds,ui->dsb_offset->value());
         //过0点
         //double nsZero = calculateFrequencyByZero(bufferedRawData ,timeIntervalNanoseconds);
 
@@ -358,7 +215,10 @@ void harmonic::onRawDataReady(const QVector<double> &rawdata,double timeInterval
         //等待测试
         //FileManager::serializeToBinary(logMessage ,rawdata);
         FileManager::serializeToBinary(logMessage ,rawdata ,cunnentRange ,
-                                       ui->le_timebase->text().toInt() ,timeIntervalNanoseconds,ui->cb_Timebase->currentIndex());
+                                       ui->le_timebase->text().toInt() ,timeIntervalNanoseconds,ui->cb_Timebase->currentIndex(),
+                                       ui->dsb_upLimit->value() ,
+                                       ui->dsb_downLimit->value() ,
+                                       ui->cb_userThresholdTigger->checkState());
     }
 
     alreadyProcessed = false; // 允许下次处理
@@ -380,7 +240,6 @@ void harmonic::onDataReady(const QVector<QPointF> &data){
 void harmonic::renderTimeChartFinash(const QVector<QPointF> &data ,double timeMultiplier){
     bufferedData = data;
     recvLog("时域图表渲染完成");
-
 
     if(configSetting.autoRenderFrequency){
         fftHandle->setDatas(&bufferedData ,timeMultiplier);
@@ -472,7 +331,7 @@ void harmonic::harmonicRunReady(const QVector<QVector<QVariant>> result){
     }
 }
 
-void harmonic::fftReady(std::vector<double> frequencies,std::vector<double> magnitudes){
+void harmonic::fftReady(std::vector<double> frequencies,std::vector<double> magnitudes,std::vector<double> phases){
     static bool alreadyProcessed = false;
 
     if (alreadyProcessed) {
@@ -486,6 +345,10 @@ void harmonic::fftReady(std::vector<double> frequencies,std::vector<double> magn
 
     double baseFreq = ui->spinBox->value();
     analyzer->setData(frequencies ,magnitudes ,baseFreq);
+
+    //绘制相位图
+    polartChart->setRenderData(magnitudes ,phases);
+    polartChart->run();
 }
 
 //上一页
@@ -537,6 +400,8 @@ void harmonic::on_pushButton_9_clicked()
     ui->tableView->setModel(nullptr);
     renderFrequncyChart->clear();
     timeChart->clear();
+    polartChart->clear();
+
 }
 
 //加载原始数据（测试）
@@ -556,10 +421,18 @@ void harmonic::on_pushButton_6_clicked()
         double sampleInterval = 0.0;
         int cb_Timebase_index = 0;
 
-        FileManager::deserializeFromBinary(fileName ,rawdata ,cunnentRange ,timebaseValue ,sampleInterval,cb_Timebase_index);
+        double up_limit;
+        double down_limit;
+        bool userThresholdTigger;
+
+        FileManager::deserializeFromBinary(fileName ,rawdata ,cunnentRange ,timebaseValue ,sampleInterval,cb_Timebase_index,
+                                           up_limit ,down_limit ,userThresholdTigger);
 
         ui->cb_Timebase->setCurrentIndex(cb_Timebase_index);
         currentTimebaseIndex = cb_Timebase_index;
+
+        currentTimebase = timeBaseList.at(currentTimebaseIndex);
+        currentTimebase.interval = sampleInterval;
 
         binderVoltage->setCurrentEnumValue(cunnentRange);
         //ui->le_timebase->setText(QString::number(timebaseValue));
@@ -572,7 +445,17 @@ void harmonic::on_pushButton_6_clicked()
         std::chrono::duration<double, std::milli> elapsed = end - start;
         recvLog("反序列化原始数据文件时间："+QString::number(elapsed.count())+" ms");
         if(rawdata.size() > 0){
-            timeChart->render(rawdata,cunnentRange,currentTimebase);
+
+            peakParam.up_volts_threshold = up_limit;
+            peakParam.down_volts_threshold = down_limit;
+            peakParam.isShow = userThresholdTigger;
+
+            //ui->cb_userThresholdTigger->setCheckState(userThresholdTigger);
+            ui->dsb_downLimit->setValue(down_limit);
+            ui->dsb_upLimit->setValue(up_limit);
+            ui->cb_userThresholdTigger->setChecked(userThresholdTigger);
+
+            timeChart->render(rawdata,cunnentRange,currentTimebase,peakParam);
             timeChart->run();
 
             bufferedRawData = rawdata;
@@ -582,7 +465,7 @@ void harmonic::on_pushButton_6_clicked()
 
             //double nsZero = calculateFrequencyByZero(bufferedRawData ,currentTimebase.interval);
             //recvLog("过零点信号频率：" + QString::number(nsZero));
-            double ns = calculateFrequency(bufferedRawData,sampleInterval,ui->dsb_offset->value());
+            double ns = Algorithm::calculateFrequency(bufferedRawData,sampleInterval,ui->dsb_offset->value());
 
             //double ns = Algorithm::calculateFrequency(bufferedRawData ,sampleInterval);
             recvLog("信号频率："+QString::number(ns));
@@ -650,6 +533,12 @@ void harmonic::on_pushButton_11_clicked()
 void harmonic::on_pushButton_12_clicked()
 {
     bool success = segmentHandle->open();
+
+    segmentHandle->changeTimebase(ui->le_timebase->text().toInt());
+    segmentHandle->changeSamplesCount(ui->le_samplecount->text().toInt());
+    segmentHandle->changeRange(cunnentRange);
+    segmentHandle->loadTestData();
+
     if(success){
         ui->pushButton_12->setEnabled(false);
         ui->pushButton_13->setEnabled(true);
@@ -696,7 +585,7 @@ void harmonic::on_cb_Timebase_currentIndexChanged(int index)
             ui->le_samplecount->setText(QString::number(currentTimebase.sampleCount));
 
             if(!isRunning && bufferedRawData.size() > 0){
-                timeChart->render(bufferedRawData,cunnentRange,currentTimebase);
+                timeChart->render(bufferedRawData,cunnentRange,currentTimebase,peakParam);
                 timeChart->run();
             }else{
                 timeChart->changeX(currentTimebase);
@@ -721,22 +610,6 @@ void harmonic::on_cb_Voltage_currentIndexChanged(int index)
         //     timeChart->changeY(cunnentRange);
         // }
     }
-}
-
-//筛选时域图的x轴
-void harmonic::on_pushButton_15_clicked()
-{
-    double xMin = ui->dsb_time_x_min->value();
-    double xMax = ui->dsb_time_x_max->value();
-    timeChart->setXRange(xMin ,xMax);
-}
-
-//筛选频率图的x轴
-void harmonic::on_pushButton_16_clicked()
-{
-    double xMin = ui->dsb_frequency_x_min->value();
-    double xMax = ui->dsb_frequency_x_max->value();
-    renderFrequncyChart->setXRange(xMin ,xMax);
 }
 
 
@@ -792,6 +665,8 @@ void harmonic::on_checkBox_stateChanged(int arg1)
 //打开系统设置
 void harmonic::on_pushButton_17_clicked()
 {
+    // QVector<QPointF> datas;
+    // timeChart->setPeakTiggerData(datas);
     setWin->SetConfig(&configSetting,timeBaseList);
     setWin->show();
 }

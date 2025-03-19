@@ -88,6 +88,100 @@ QString SegmentHandle::calculateSamplingRate(double timeIntervalSeconds, int tot
     return rateStr;
 }
 
+void SegmentHandle::loadTestData(){
+
+    // 设置通道
+    status = ps2000aSetChannel(handle, _channel, 1, _coupling, _range, 0);
+    if (status != PICO_OK) {
+        emit sendLog("频道设置失败， 错误代码: " + QString::number(status));
+        emit finished();  // 线程结束信号
+        return;
+    }
+    emit sendLog("已设置通道 ... ");
+
+    int16_t triggersEnable = isUseTriggers == true ? 1 : 0;
+    // 设置触器发条件
+    status = ps2000aSetSimpleTrigger(handle,         // 设备句柄
+                                     triggersEnable, // 启用触发
+                                     _channel,       // 使用通道A触发
+                                     0, // 阈值 0 V (ADC单位：0)
+                                     PS2000A_RISING, // 上升沿触发
+                                     0,              // 延迟采样数
+                                     0 // 自动触发延迟时间(毫秒)
+                                     );
+    if (status != PICO_OK) {
+        emit sendLog("出发条件设置失败，错误代码 " + QString::number(status));
+        emit finished(); // 线程结束信号
+        return;
+    }
+
+    // 确定时间基准和采样设置
+    uint32_t timebase = _timebase;
+    int32_t samplesPerSegment = _samplesPerSegment;
+    float timeIntervalNanoseconds = 0;
+    int16_t oversample = 1;
+
+    status = ps2000aGetTimebase2(handle, timebase, samplesPerSegment,
+                                 &timeIntervalNanoseconds, oversample, 0, 0);
+
+    emit sendLog("已确定时间基准，设置采样 ... ");
+    emit sendLog("采样率："+calculateSamplingRate(timeIntervalNanoseconds * 1e-9 ,samplesPerSegment));
+
+    // 设置数据缓存
+    int16_t* buffer = new int16_t[samplesPerSegment];
+    status = ps2000aSetDataBuffer(handle, _channel, buffer, samplesPerSegment, 0, PS2000A_RATIO_MODE_NONE);
+    if (status != PICO_OK) {
+        delete[] buffer;
+        emit sendLog("设置缓存失败: " + QString::number(status));
+        emit finished();  // 线程结束信号
+        return;
+    }
+
+    status = ps2000aRunBlock(handle, 0, samplesPerSegment, timebase, oversample, nullptr, 0, nullptr, nullptr);
+    if (status != PICO_OK) {
+        delete[] buffer;
+        emit finished();  // 线程结束信号
+        return;
+    }
+
+    // 等待采集完成
+    int16_t ready = 0;
+    while (!ready) {
+        status = ps2000aIsReady(handle, &ready);
+        if (status != PICO_OK) {
+            delete[] buffer;
+            emit sendLog("检查采集状态失败，错误代码:  " + QString::number(status));
+            emit finished();  // 线程结束信号
+            return;
+        }
+    }
+
+    uint32_t noOfSamples = samplesPerSegment;
+    status = ps2000aGetValues(handle, 0, &noOfSamples, 1, PS2000A_RATIO_MODE_NONE, 0, nullptr);
+    if (status != PICO_OK) {
+        emit sendLog("读取数据失败，错误代码: " +QString::number(status));
+        return;
+    }
+
+    rawdatas.clear();
+
+    for(uint32_t i = 0; i<noOfSamples;++i){
+        rawdatas.append(buffer[i]);
+        // 更新进度条
+        if (i % 1000 == 0 || i == noOfSamples - 1) {
+            int progress = static_cast<int>((i / static_cast<float>(noOfSamples)) * 100);
+            emit progressUpdated(progress);  // 更新进度信号
+        }
+    }
+
+    // 确保最后更新进度条为 100%
+    emit progressUpdated(100);  // 发出进度信号，确保到达100%
+    emit testDataReady(rawdatas,timeIntervalNanoseconds);
+    emit finished();  // 线程结束信号
+    delete[] buffer;
+
+}
+
 void SegmentHandle::loadData(){
 
     // 设置通道

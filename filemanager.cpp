@@ -360,7 +360,141 @@ bool FileManager::serializeToBinary(const QString &fileName, const QVector<doubl
     }
 
     file.close();
+
     qDebug() << "Serialization complete.";
 
     return true;
 }
+
+bool FileManager::serializeToBinary(const QString &fileName, const QVector<double> &data,
+                              PS2000A_RANGE range, int timeBase,
+                              double sampleInterval ,int divTagIndex,
+                              double up_volts_threshold ,double down_volts_threshold ,bool isShow){
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly)) {
+        qCritical("Failed to open file for writing: %s", qPrintable(fileName));
+        return false;
+    }
+
+    QDataStream out(&file);
+    out.setVersion(QDataStream::Qt_6_6); // 设置版本以确保兼容性
+
+    // 写入 PS2000A_RANGE（假设是一个枚举，按整数存储）
+    out << static_cast<int>(range);
+
+    // 写入 TimeBase
+    out << timeBase;
+
+    // 写入采样时间间隔
+    out << sampleInterval;
+
+    //写入div索引
+    out << divTagIndex;
+
+    // 写入数据点的数量
+    int size = data.size();
+    out << size;
+
+    // 写入数据点
+    for (const double& point : data) {
+        out << point;
+    }
+
+    out << up_volts_threshold;
+
+    out << down_volts_threshold;
+
+    out << isShow;
+
+    file.close();
+
+    qDebug() << "Serialization complete.";
+
+    return true;
+}
+
+bool FileManager::deserializeFromBinary(const QString &fileName, QVector<double> &data,
+                                  PS2000A_RANGE &range, int &timeBase,
+                                  double &sampleInterval ,int &divTagIndex,
+                                  double &up_volts_threshold ,double &down_volts_threshold ,bool &isShow){
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qCritical("Failed to open file for reading: %s", qPrintable(fileName));
+        return false;
+    }
+
+    QDataStream in(&file);
+    in.setVersion(QDataStream::Qt_6_6); // 设置版本以确保兼容性
+
+    // 读取 PS2000A_RANGE
+    int rangeInt;
+    in >> rangeInt;
+    range = static_cast<PS2000A_RANGE>(rangeInt);
+
+    // 读取 TimeBase
+    in >> timeBase;
+
+    // 读取采样时间间隔
+    in >> sampleInterval;
+
+    // 读取div索引
+    in >> divTagIndex;
+
+    // 读取数据点的数量
+    int size;
+    in >> size;
+
+    // 读取数据点
+    data.resize(size);
+    for (int i = 0; i < size; ++i) {
+        in >> data[i];
+    }
+
+    in >> up_volts_threshold;
+    in >> down_volts_threshold;
+    in >> isShow;
+
+    file.close();
+    qDebug() << "Deserialization complete.";
+
+    return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

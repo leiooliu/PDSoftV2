@@ -19,7 +19,7 @@ public:
     void run() override;
     void clearData();
 signals:
-    void fftReady(const std::vector<double> frequencies,std::vector<double> magnitudes);
+    void fftReady(const std::vector<double> frequencies,std::vector<double> magnitudes ,std::vector<double> phases);
     void porgressUpdated(int percentage);
     void samplingRateReady(double samplingRate);
     void sendLog(QString logs);

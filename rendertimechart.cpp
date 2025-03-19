@@ -134,7 +134,12 @@ void RenderTimeChart::render(const QVector<QPointF>& datas ,QString unit){
     _datas = datas;
     _unit = unit;
 }
-void RenderTimeChart::render(const QVector<double> sourceData , PS2000A_RANGE range, TimeBase timebase){
+
+void RenderTimeChart::setPeakTiggerData(const QVector<QPointF> &datas){
+
+
+}
+void RenderTimeChart::render(const QVector<double> sourceData , PS2000A_RANGE range, TimeBase timebase,PeakParam peakParam){
     QString unit = timebase.unit;
     int unitValue = timebase.gridValue; // 这个要拆解示波器的数字
     double timeIntervalNanoseconds = timebase.interval;
@@ -191,17 +196,37 @@ void RenderTimeChart::render(const QVector<double> sourceData , PS2000A_RANGE ra
     _datas.reserve(sourceData.size());
     //_datas.reserve(timebase.sampleCount);
 
-    // 填充数据
+    QVector<QPointF> peakDatas;
+
+    // 定义断开阈值 (比如设置为 interval 的1.5倍)
+    double breakThreshold = interval / timeMultiplier * 1000 ;
+
     for (int i = 0; i < sourceData.size(); ++i) {
-        // 确保时间计算时单位一致
-        double time = i * interval / timeMultiplier;  // 计算时间
-        double volts = PDTools::adcToVolts(sourceData[i], range) * 1000;  // 电压统一转化成 mv
-        // 添加到结果集中
-        _datas.append(QPointF(time, volts));
+        double time = i * interval / timeMultiplier;
+        double volts = PDTools::adcToVolts(sourceData[i], range) * 1000;
+
+        QPointF point = QPointF(time, volts);
+        _datas.append(point);
+
+        bool isPeak = false;
+        if (volts > 0 && volts >= peakParam.up_volts_threshold) {
+            isPeak = true;
+        } else if (volts < 0 && volts <= -peakParam.down_volts_threshold) {
+            isPeak = true;
+        }
+
+        if (isPeak) {
+            peakDatas.append(point);
+        }
+    }
+
+    if (peakParam.isShow) {
+        _pdChart->setPeakTiggerData(peakDatas,breakThreshold);
     }
 
     // 设置单位
     _unit = unit;
+
     qDebug() << _datas.size();
 }
 void RenderTimeChart::run(){
