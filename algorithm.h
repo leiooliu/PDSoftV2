@@ -240,6 +240,129 @@ public :
         }
     }
 
+    //差值阈值计算
+    static QVector<QPointF> getDynamicThresholdPulses(const QVector<QPointF>& datas) {
+        if (datas.isEmpty()) return QVector<QPointF>();
+
+        // 计算均值
+        double sum = 0.0;
+        for (const auto& point : datas) sum += point.y();
+        double mean = sum / datas.size();
+
+        // 计算标准差
+        double variance = 0.0;
+        for (const auto& point : datas) {
+            variance += pow(point.y() - mean, 2);
+        }
+        double stddev = sqrt(variance / datas.size());
+
+        // 设置动态阈值（例如均值+3倍标准差）
+        double threshold = mean + 5 * stddev;
+
+        // 提取超过阈值的点
+        QVector<QPointF> pulseData;
+        for (const auto& point : datas) {
+            if (point.y() >= threshold) {
+                pulseData.append(point);
+            }
+        }
+        return pulseData;
+    }
+
+    static QVector<QPointF> getPeakPulses(const QVector<QPointF>& datas) {
+        QVector<QPointF> pulseData;
+        if (datas.size() < 3) return pulseData; // 至少需要三个点
+
+        for (int i = 1; i < datas.size() - 1; ++i) {
+            double prevY = datas[i-1].y();
+            double currY = datas[i].y();
+            double nextY = datas[i+1].y();
+
+            if (currY > prevY && currY > nextY) {
+                pulseData.append(datas[i]);
+            }
+        }
+        return pulseData;
+    }
+
+    static QVector<QPointF> getPulseByThreshold(const QVector<QPointF>& datas, double threshold) {
+        QVector<QPointF> pulseData;
+        for (const QPointF& point : datas) {
+            if (point.y() >= threshold) {
+                pulseData.append(point);
+            }
+        }
+        return pulseData;
+    }
+
+    static QVector<QPointF> extractPulseData(const QVector<QPointF>& _data, double threshold)
+    {
+        QVector<QPointF> pulseDatas;
+        bool inPulse = false;
+        QVector<QPointF> currentPulse;
+
+        for (int i = 0; i < _data.size(); ++i) {
+            if (_data[i].y() > threshold) {
+                // 当前数据点处于脉冲中
+                if (!inPulse) {
+                    // 刚刚进入脉冲区域，清空当前脉冲数据
+                    inPulse = true;
+                    currentPulse.clear();
+                }
+                currentPulse.append(_data[i]);
+            } else {
+                if (inPulse) {
+                    // 脉冲结束，根据需求处理 currentPulse
+                    // 例如，这里取当前脉冲中间的点作为代表
+                    int midIndex = currentPulse.size() / 2;
+                    pulseDatas.append(currentPulse[midIndex]);
+                    inPulse = false;
+                }
+            }
+        }
+
+        // 如果最后一个数据点仍处于脉冲中，处理最后的脉冲数据
+        if (inPulse && !currentPulse.isEmpty()) {
+            int midIndex = currentPulse.size() / 2;
+            pulseDatas.append(currentPulse[midIndex]);
+        }
+
+        return pulseDatas;
+    }
+
+    static QVector<QPointF> findSpikesBySlope(const QVector<QPointF>& data, double slopeThreshold)
+    {
+        QVector<QPointF> spikes;
+        if (data.size() < 2) {
+            return spikes;
+        }
+
+        for (int i = 1; i < data.size(); ++i) {
+            double dx = data[i].x() - data[i - 1].x();
+            // 如果 x 坐标是等间隔采样，也可以直接认为 dx=1.0 或 dx=采样周期
+            if (dx == 0) {
+                continue; // 避免除 0
+            }
+
+            double dy = data[i].y() - data[i - 1].y();
+            //double slope = dy / dx;
+
+            if (std::fabs(dy) > slopeThreshold) {
+                spikes.append(data[i]);
+            }
+
+            //qDebug() << "Point" << i << "slope:" << slope;  // 打印调试信息
+
+            // if (std::fabs(slope) > slopeThreshold) {
+            //     // 认为在 data[i] 附近存在明显突起
+            //     spikes.append(data[i]);
+            // }
+        }
+
+        return spikes;
+    }
+
+
 };
 
 #endif // ALGORITHM_H

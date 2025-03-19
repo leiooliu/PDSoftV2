@@ -1,6 +1,7 @@
 #include "rendertimechart.h"
 #include "QMessageBox"
 #include <chrono>
+#include <algorithm.h>
 RenderTimeChart::RenderTimeChart(PDChart *pdChart,QObject *parent)
     : QThread{parent}
 {
@@ -199,7 +200,7 @@ void RenderTimeChart::render(const QVector<double> sourceData , PS2000A_RANGE ra
     QVector<QPointF> peakDatas;
 
     // 定义断开阈值 (比如设置为 interval 的1.5倍)
-    double breakThreshold = interval / timeMultiplier * 1000 ;
+    //double breakThreshold = interval / timeMultiplier * 1000 ;
 
     for (int i = 0; i < sourceData.size(); ++i) {
         double time = i * interval / timeMultiplier;
@@ -208,21 +209,29 @@ void RenderTimeChart::render(const QVector<double> sourceData , PS2000A_RANGE ra
         QPointF point = QPointF(time, volts);
         _datas.append(point);
 
-        bool isPeak = false;
-        if (volts > 0 && volts >= peakParam.up_volts_threshold) {
-            isPeak = true;
-        } else if (volts < 0 && volts <= -peakParam.down_volts_threshold) {
-            isPeak = true;
-        }
+        // bool isPeak = false;
+        // if (volts > 0 && volts >= peakParam.up_volts_threshold) {
+        //     isPeak = true;
+        // } else if (volts < 0 && volts <= -peakParam.down_volts_threshold) {
+        //     isPeak = true;
+        // }
 
-        if (isPeak) {
-            peakDatas.append(point);
-        }
+        // if (isPeak) {
+        //     peakDatas.append(point);
+        // }
     }
+
+    peakDatas = Algorithm::findSpikesBySlope(_datas ,1100);
 
     if (peakParam.isShow) {
-        _pdChart->setPeakTiggerData(peakDatas,breakThreshold);
+        _pdChart->setPeakTiggerData(peakDatas,0);
     }
+    peakDatas = Algorithm::getPeakPulses(_datas);
+
+    // for(int i=0;i<peakDatas.size();++i){
+    //     qDebug()<< "脉冲数据：" << peakDatas[i].rx() << "," << peakDatas[i].ry();
+    // }
+
 
     // 设置单位
     _unit = unit;

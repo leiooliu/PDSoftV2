@@ -114,43 +114,52 @@ void PDChart::setPeakTiggerData(const QVector<QPointF> &peakTiggerData,double br
     QPen pen(Qt::red);
     pen.setWidth(3);
 
-    QVector<QPointF> currentSegmentData; // 临时数据容器
+    QLineSeries *series = new QLineSeries();
+    series->setName(""); // 置空名称，可隐藏图例
+    series->setVisible(true); // 曲线本身依然可见
+    series->setPen(pen);
+    series->replace(peakTiggerData);
+    chart->addSeries(series);
+    series->attachAxis(axisX);
+    series->attachAxis(axisY);
 
-    for (int i = 0; i < peakTiggerData.size(); ++i) {
-        const QPointF& point = peakTiggerData[i];
+    // QVector<QPointF> currentSegmentData; // 临时数据容器
 
-        if (!currentSegmentData.isEmpty()) {
-            QPointF lastPoint = currentSegmentData.last();
-            if (qAbs(point.x() - lastPoint.x()) > breakThreshold) {
-                // 遇到断点，先批量replace上一次线段数据
-                if (!currentSegmentData.isEmpty()) {
-                    QLineSeries *series = new QLineSeries();
-                    series->setName(""); // 置空名称，可隐藏图例
-                    series->setVisible(true); // 曲线本身依然可见
-                    series->setPen(pen);
-                    series->replace(currentSegmentData); // 一次批量赋值
-                    chart->addSeries(series);
-                    series->attachAxis(axisX);
-                    series->attachAxis(axisY);
-                    currentSegmentData.clear(); // 清空以准备下一段数据
-                }
-            }
-        }
+    // for (int i = 0; i < peakTiggerData.size(); ++i) {
+    //     const QPointF& point = peakTiggerData[i];
 
-        currentSegmentData.append(point);
-    }
+    //     if (!currentSegmentData.isEmpty()) {
+    //         QPointF lastPoint = currentSegmentData.last();
+    //         if (qAbs(point.x() - lastPoint.x()) > breakThreshold) {
+    //             // 遇到断点，先批量replace上一次线段数据
+    //             if (!currentSegmentData.isEmpty()) {
+    //                 QLineSeries *series = new QLineSeries();
+    //                 series->setName(""); // 置空名称，可隐藏图例
+    //                 series->setVisible(true); // 曲线本身依然可见
+    //                 series->setPen(pen);
+    //                 series->replace(currentSegmentData); // 一次批量赋值
+    //                 chart->addSeries(series);
+    //                 series->attachAxis(axisX);
+    //                 series->attachAxis(axisY);
+    //                 currentSegmentData.clear(); // 清空以准备下一段数据
+    //             }
+    //         }
+    //     }
 
-    // 循环结束后，别忘了添加最后一段数据
-    if (!currentSegmentData.isEmpty()) {
-        QLineSeries *series = new QLineSeries();
-        series->setName(""); // 置空名称，可隐藏图例
-        series->setVisible(true); // 曲线本身依然可见
-        series->setPen(pen);
-        series->replace(currentSegmentData);
-        chart->addSeries(series);
-        series->attachAxis(axisX);
-        series->attachAxis(axisY);
-    }
+    //     currentSegmentData.append(point);
+    // }
+
+    // // 循环结束后，别忘了添加最后一段数据
+    // if (!currentSegmentData.isEmpty()) {
+    //     QLineSeries *series = new QLineSeries();
+    //     series->setName(""); // 置空名称，可隐藏图例
+    //     series->setVisible(true); // 曲线本身依然可见
+    //     series->setPen(pen);
+    //     series->replace(currentSegmentData);
+    //     chart->addSeries(series);
+    //     series->attachAxis(axisX);
+    //     series->attachAxis(axisY);
+    // }
 
     // 隐藏图例中无名项
     //chart->legend()->setVisible(false);
