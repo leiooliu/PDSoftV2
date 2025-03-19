@@ -29,11 +29,12 @@ public:
 signals:
     void progressUpdated(int percentage);
     void dataRendey();
-    void renderFinished(const QVector<QPointF> &datas ,double timeMultiplier);
+    void renderFinished(const QVector<QPointF> &datas,const QVector<QPointF> &pulseDatas ,double timeMultiplier);
     void sendLog(QString logs);
 private:
     PDChart *_pdChart;
     QVector<QPointF> _datas;
+    QVector<QPointF> _peakDatas;
     QString _unit;
     // LOD相关变量
     QVector<QVector<QPointF>> lodData; // 存储LOD数据

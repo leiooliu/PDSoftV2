@@ -197,10 +197,9 @@ void RenderTimeChart::render(const QVector<double> sourceData , PS2000A_RANGE ra
     _datas.reserve(sourceData.size());
     //_datas.reserve(timebase.sampleCount);
 
-    QVector<QPointF> peakDatas;
 
     // 定义断开阈值 (比如设置为 interval 的1.5倍)
-    //double breakThreshold = interval / timeMultiplier * 1000 ;
+    double breakThreshold = interval / timeMultiplier * 1000 ;
 
     for (int i = 0; i < sourceData.size(); ++i) {
         double time = i * interval / timeMultiplier;
@@ -221,12 +220,12 @@ void RenderTimeChart::render(const QVector<double> sourceData , PS2000A_RANGE ra
         // }
     }
 
-    peakDatas = Algorithm::findSpikesBySlope(_datas ,1100);
+    _peakDatas = Algorithm::findSpikesBySlope(_datas ,500);
 
     if (peakParam.isShow) {
-        _pdChart->setPeakTiggerData(peakDatas,0);
+        _pdChart->setPeakTiggerData(_peakDatas,breakThreshold);
     }
-    peakDatas = Algorithm::getPeakPulses(_datas);
+    //peakDatas = Algorithm::getPeakPulses(_datas);
 
     // for(int i=0;i<peakDatas.size();++i){
     //     qDebug()<< "脉冲数据：" << peakDatas[i].rx() << "," << peakDatas[i].ry();
@@ -249,7 +248,7 @@ void RenderTimeChart::run(){
     emit sendLog("时域图表渲染时间：" + QString::number(elapsed.count()) + " ms");
     //createLOD(_datas); // 预处理LOD数据
     //updateLOD(maxLevels - 1); // 初始显示最低精度
-    emit renderFinished(_datas ,timeMultiplier);  // 线程结束信号
+    emit renderFinished(_datas,_peakDatas ,timeMultiplier);  // 线程结束信号
 }
 void RenderTimeChart::clear(){
     _pdChart->clearData();

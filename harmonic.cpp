@@ -72,6 +72,13 @@ harmonic::harmonic(QWidget *parent)
     connect(fftHandle ,&FFTHandle::samplingRateReady,this,&harmonic::samplingRateLoad);
     connect(fftHandle ,&FFTHandle::sendLog,this,&harmonic::recvLog);
 
+    pulseFftHandle = new FFTHandle();
+    connect(pulseFftHandle ,&FFTHandle::fftPluseReady,this,&harmonic::fftPluseReady);
+    connect(pulseFftHandle ,&FFTHandle::porgressUpdated,this,&harmonic::updateProgress);
+    connect(pulseFftHandle ,&FFTHandle::samplingRateReady,this,&harmonic::samplingRateLoad);
+    connect(pulseFftHandle ,&FFTHandle::sendLog,this,&harmonic::recvLog);
+
+
     // 创建 SegmentHandle 线程对象
     segmentHandle = new SegmentHandle(PS2000A_5V, PS2000A_DC, PS2000A_CHANNEL_A,
                                       ui->le_segmentcount->text().toInt(), ui->le_samplecount->text().toInt(), 1, this);
@@ -237,7 +244,7 @@ void harmonic::samplingRateLoad(double samplingRate){
 void harmonic::onDataReady(const QVector<QPointF> &data){
 }
 //时域图表渲染完成
-void harmonic::renderTimeChartFinash(const QVector<QPointF> &data ,double timeMultiplier){
+void harmonic::renderTimeChartFinash(const QVector<QPointF> &data,const QVector<QPointF> &pulseDatas ,double timeMultiplier){
     bufferedData = data;
     recvLog("时域图表渲染完成");
 
@@ -246,6 +253,21 @@ void harmonic::renderTimeChartFinash(const QVector<QPointF> &data ,double timeMu
         //fftHandle->setRawDatas(&rawdata ,timeIntervalNanoseconds);
         fftHandle->run();
     }
+
+    // //只绘制两个点
+    // QVector<QPointF> tempDatas;
+    // for(int i=0;i<2;++i)
+    // {
+    //     tempDatas.append(pulseDatas.at(i));
+    // }
+    // //绘制相位图
+    // pulseFftHandle->setPulseDatas(&tempDatas,timeMultiplier);
+
+    //绘制相位图
+    pulseFftHandle->setPulseDatas(&pulseDatas,timeMultiplier);
+
+    //polartChart->setRenderData(magnitudes ,phases);
+    //polartChart->run();
 
     // if(!configSetting.autoCalculateHarmonicResult &&
     //     !configSetting.autoRenderFrequency)
@@ -345,10 +367,20 @@ void harmonic::fftReady(std::vector<double> frequencies,std::vector<double> magn
 
     double baseFreq = ui->spinBox->value();
     analyzer->setData(frequencies ,magnitudes ,baseFreq);
+}
 
-    //绘制相位图
+void harmonic::fftPluseReady(std::vector<double> frequencies,std::vector<double> magnitudes,std::vector<double> phases){
+    static bool alreadyProcessed = false;
+
+    if (alreadyProcessed) {
+        return; // 如果已处理数据，则直接返回，防止重复绘制
+    }
+    alreadyProcessed = true;
+
     polartChart->setRenderData(magnitudes ,phases);
     polartChart->run();
+
+    alreadyProcessed = false;
 }
 
 //上一页
@@ -401,7 +433,6 @@ void harmonic::on_pushButton_9_clicked()
     renderFrequncyChart->clear();
     timeChart->clear();
     polartChart->clear();
-
 }
 
 //加载原始数据（测试）

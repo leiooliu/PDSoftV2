@@ -16,6 +16,7 @@ private:
     PDPolartChart *_pdChart;
     std::vector<double> _magnitudes ;
     std::vector<double> _phases;
+
 };
 
 #endif // RENDERPOLARTCHART_H

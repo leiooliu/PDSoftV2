@@ -61,7 +61,7 @@ private:
     void onTestDataReady(const QVector<double> &rawdata,double timeIntervalNanoseconds);
 
     void updateProgress(int percentage);
-    void renderTimeChartFinash(const QVector<QPointF> &data ,double timeMultiplier);
+    void renderTimeChartFinash(const QVector<QPointF> &data ,const QVector<QPointF> &pulseDatas ,double timeMultiplier);
     void renderFrequencyChartFinash(const QVector<QPointF> &data);
     SegmentHandle *segmentHandle;  // 用于启动数据采集的线程
     void onTestReady(double ns ,double minVolts ,double maxVolts);
@@ -78,7 +78,9 @@ private:
     void harmonicRunReady(const QVector<QVector<QVariant>> result);
     FFTAnalyzer *analyzer;
     FFTHandle *fftHandle;
+    FFTHandle *pulseFftHandle;
     void fftReady(std::vector<double> frequencies,std::vector<double> magnitudes,std::vector<double> phases);
+    void fftPluseReady(std::vector<double> frequencies,std::vector<double> magnitudes,std::vector<double> phases);
     void samplingRateLoad(double samplingRate);
     void recvLog(QString log);
     TimeBase currentTimebase;

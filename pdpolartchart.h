@@ -22,6 +22,7 @@ signals:
 
 private:
     QChartView *chartView;
+    QScatterSeries *series;
 };
 
 #endif // PDPOLARTCHART_H

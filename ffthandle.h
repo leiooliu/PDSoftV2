@@ -16,10 +16,12 @@ public:
     ~FFTHandle();
     void setDatas(QVector<QPointF>* _data ,double _timeMultiplier);
     void setRawDatas(const QVector<double>* _rawData,double _timeIntervalNanoseconds);
+    void setPulseDatas(const QVector<QPointF>* _dat,double _timeMultiplier);
     void run() override;
     void clearData();
 signals:
     void fftReady(const std::vector<double> frequencies,std::vector<double> magnitudes ,std::vector<double> phases);
+    void fftPluseReady(const std::vector<double> frequencies,std::vector<double> magnitudes ,std::vector<double> phases);
     void porgressUpdated(int percentage);
     void samplingRateReady(double samplingRate);
     void sendLog(QString logs);

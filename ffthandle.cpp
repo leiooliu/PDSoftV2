@@ -61,6 +61,102 @@ void FFTHandle::calculateNew(){
 
 }
 
+void FFTHandle::setPulseDatas(const QVector<QPointF>* _data,double _timeMultiplier){
+    timeMultiplier = _timeMultiplier;
+
+    if (_data->size() < 2) {
+        std::cerr << "输入数据不足，无法进行FFT分析。" << std::endl;
+        emit sendLog("输入数据不足，无法进行FFT分析。");
+        return;
+    }
+
+    // 提取时间和电压数据
+    std::vector<double> time, voltage;
+    //int i=0;
+    for (const auto& point : *_data) {
+        time.push_back(point.x()*timeMultiplier);
+        voltage.push_back(point.y());
+    }
+
+    // 确保数据是按时间排序的（如果有必要）
+    if (!std::is_sorted(time.begin(), time.end())) {
+        std::cerr << "输入数据未按时间排序，请检查输入数据。" << std::endl;
+        return;
+    }
+
+    double delta = time[1] - time[0];
+    // for (size_t i = 2; i < time.size(); ++i) {
+    //     if (std::abs((time[i] - time[i-1]) - delta) > 1e-6) {
+    //         std::cerr << "非均匀采样，FFT结果无效。" << std::endl;
+    //         emit sendLog("错误：非均匀采样数据");
+    //         return;
+    //     }
+    // }
+
+    // 计算采样率
+    double samplingRate = 1.0 / delta;
+    qDebug()<<"采样率："<<samplingRate;
+
+    // 准备 FFT 数据
+    int N = voltage.size();
+    int output_length = N/2 + 1;
+
+    fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * output_length);
+    fft_in = (double*)fftw_malloc(sizeof(double) * N);
+
+    for (int i = 0; i < N; ++i) {
+        fft_in[i] = voltage[i];
+    }
+
+    // 执行 FFT
+    fftw_plan plan = fftw_plan_dft_r2c_1d(N, fft_in, fft_out, FFTW_ESTIMATE);
+    fftw_execute(plan);
+
+
+    double referenceVoltage = 0.775;
+
+    // 计算频率和幅值
+    std::vector<double> frequencies(output_length);
+    std::vector<double> magnitudes(output_length);
+    //相位数据容器
+    std::vector<double> phases;
+
+    for (int i = 0; i < output_length; ++i) {
+
+        double real = fft_out[i][0];
+        double imag = fft_out[i][1];
+        double mag = std::sqrt(real * real + imag * imag) / N;
+
+        //单边普新政（直流和Nyquist分量不 * 2）
+        if(i>0 && i != output_length - 1){
+            mag *= 2;
+        }
+
+        //转换RMS振幅
+        double amplitude_rms = mag / std::sqrt(2);
+
+        //转换为dBu
+        double amplitude_dBu = 20 * std::log10(amplitude_rms / referenceVoltage);
+
+        magnitudes[i] = amplitude_dBu;
+        frequencies[i] = i * samplingRate / N;
+
+        //获得相位数据
+        double phase = atan2(imag,real);
+
+        phases.push_back(phase);
+
+        // 更新 FFT 数据计算进度（0% - 100%）
+        if (i % 1000 == 0 || i == N / 2 - 1) {
+            int progress = static_cast<int>((i / static_cast<float>(N / 2)) * 100); // 更新到100%
+            emit porgressUpdated(progress); // 发送进度信号
+        }
+    }
+
+    emit porgressUpdated(100);
+    emit fftPluseReady(frequencies ,magnitudes,phases);
+}
+
 void FFTHandle::calculate(){
     if (data->size() < 2) {
         std::cerr << "输入数据不足，无法进行FFT分析。" << std::endl;

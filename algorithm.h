@@ -347,7 +347,7 @@ public :
             double dy = data[i].y() - data[i - 1].y();
             //double slope = dy / dx;
 
-            if (std::fabs(dy) > slopeThreshold) {
+            if (dy > slopeThreshold) {
                 spikes.append(data[i]);
             }
 
