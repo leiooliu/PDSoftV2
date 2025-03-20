@@ -12,11 +12,7 @@ PDPolartChart::PDPolartChart(QWidget *parent)
     layout->addWidget(chartView);
     // chart->setTitle("信号相位");
 
-    series = new QScatterSeries();
-    series->setUseOpenGL(true);
-    series->setColor(Qt::red);
-    series->setMarkerSize(8);
-    chart->addSeries(series);
+
 
     // chartView = new PDChartView(chart);
     // chartView->setRenderHint(QPainter::Antialiasing);
@@ -80,6 +76,12 @@ void PDPolartChart::setData(const std::vector<double> magnitudes ,
 
     QVector<QPointF> phasesData;
 
+    QScatterSeries *series = new QScatterSeries();
+    series->setUseOpenGL(true);
+    series->setColor(Qt::red);
+    series->setMarkerSize(8);
+    chart->addSeries(series);
+
     for (size_t i = 0; i < magnitudes.size(); ++i) {
         double angleDeg = phases[i] * 180 / M_PI;
         if (angleDeg < 0) angleDeg += 360; // 归一化角度到0-360°
@@ -111,5 +113,6 @@ void PDPolartChart::setData(const std::vector<double> magnitudes ,
 }
 
 void PDPolartChart::clear(){
-    series->clear();
+    chart->removeAllSeries();
+
 }

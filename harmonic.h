@@ -53,6 +53,8 @@ private slots:
     void on_checkBox_stateChanged(int arg1);
     void on_pushButton_17_clicked();
 
+    void on_pushButton_15_clicked();
+
 private:
     Ui::harmonic *ui;
     void onDataReady(const QVector<QPointF> &data);
@@ -65,6 +67,8 @@ private:
     void renderFrequencyChartFinash(const QVector<QPointF> &data);
     SegmentHandle *segmentHandle;  // 用于启动数据采集的线程
     void onTestReady(double ns ,double minVolts ,double maxVolts);
+
+    void clearPolartChart();
 
     QVector<TimeBase> timeBaseList;
     RenderTimeChart *timeChart;

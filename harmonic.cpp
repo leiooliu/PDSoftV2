@@ -432,6 +432,9 @@ void harmonic::on_pushButton_9_clicked()
     ui->tableView->setModel(nullptr);
     renderFrequncyChart->clear();
     timeChart->clear();
+}
+
+void harmonic::clearPolartChart(){
     polartChart->clear();
 }
 
@@ -700,5 +703,11 @@ void harmonic::on_pushButton_17_clicked()
     // timeChart->setPeakTiggerData(datas);
     setWin->SetConfig(&configSetting,timeBaseList);
     setWin->show();
+}
+
+//清空相位图图表
+void harmonic::on_pushButton_15_clicked()
+{
+    clearPolartChart();
 }
 

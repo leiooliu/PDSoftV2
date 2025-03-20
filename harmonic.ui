@@ -766,6 +766,13 @@
            <item row="0" column="0">
             <widget class="PDPolartChart" name="polartChart" native="true"/>
            </item>
+           <item row="1" column="0">
+            <widget class="QPushButton" name="pushButton_15">
+             <property name="text">
+              <string>清空图表</string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
         </widget>
